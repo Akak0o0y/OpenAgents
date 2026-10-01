@@ -2,6 +2,8 @@
 
 This guide covers a fresh **source checkout**. Do not copy someone else's database, browser profile, `.env`, or API keys. The repository contains templates and synthetic test fixtures, not an owner's working profile.
 
+**Just want to try the app on Windows?** Follow the [download and first-run guide](try-windows.md). The packaged preview includes its runtime, so the Git/Node/npm build steps below are unnecessary for that path. Provider and Docker requirements still apply to the features that use them.
+
 ## 1. Choose your setup
 
 | Platform | Recommended approach | Qualification limits |

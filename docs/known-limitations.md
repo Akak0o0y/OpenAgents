@@ -14,6 +14,6 @@ This is an early community source release. The code is available for inspection 
 - **Calibration:** Runtime constants marked provisional are estimates. A passing unit test does not establish statistically calibrated limits.
 - **Storage:** Completed workspaces and accumulated results can consume disk. There is no claim of a comprehensive automatic retention/cleanup policy for every data class.
 - **Performance and dependencies:** The frontend bundle is large. Native modules/browser/packaging tools create installation and platform compatibility work; dependency findings need ongoing review.
-- **Packaging:** Source publication does not include a signed, tested installer for every platform. Release-gate success alone does not replace clean-machine, upgrade, and live daily-use checks.
+- **Packaging:** An [unsigned Windows x64 preview](try-windows.md) is available. It is not a production-qualified release; fresh-machine installation, versioned upgrades, Docker-backed live tasks, and macOS/Linux packaging remain unqualified. Portable extraction can be slow. Release-gate success alone does not replace clean-machine, upgrade, and live daily-use checks.
 
 Useful contributions include reproducible bug reports, safer cross-platform credential storage, better tests for provider failures, accessible UI, clean-install verification, clearer docs, and independent original artwork/animation. The latest publication checks are recorded in [validation](validation.md); limitations are not represented as passing tests.

@@ -29,6 +29,12 @@ Special thanks to **[FreeLLMAPI](https://github.com/tashfeenahmed/freellmapi)** 
 
 This is an **early community source release, version 0.6.1**. Expect bugs and unfinished areas. Windows desktop has received the most development attention. Linux/macOS runtime work is supported in the code, but their packaged apps and protected credential storage are not at Windows parity. See [known limitations](docs/known-limitations.md) and [validation](docs/validation.md).
 
+## Try the Windows app — no build required
+
+**[Download the portable app](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.1-preview.1/OpenAgents-0.6.1-portable.exe)** for a quick trial, or use the **[Windows installer](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.1-preview.1/OpenAgents-0.6.1-setup.exe)**. Both are unsigned **Windows x64 preview builds** of 0.6.1 with known bugs; [release notes and checksums](https://github.com/Akak0o0y/OpenAgents/releases/tag/v0.6.1-preview.1) describe validation and limits.
+
+The packaged app includes its runtime. Real AI work still needs your own model connection, and isolated desktop/coding work needs Docker Linux containers. Follow the **[Windows trial guide](docs/try-windows.md)** for first run, WSL, providers, and profile storage. Developers can also build from source below.
+
 ## Requirements at a glance
 
 | Requirement | When you need it |

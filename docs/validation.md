@@ -38,6 +38,24 @@ The full suite commands are in [development](development.md). Some named tests i
 
 These are published limitations of this early source release. See [known limitations](known-limitations.md). The public CI checks cover named build/component/contract checks; they are not a replacement for the broader suites above.
 
+## Windows preview binaries — 1 October 2026
+
+The [0.6.1 Windows x64 preview](try-windows.md) was built from the sanitized public checkout with Electron **44.3.0**, which supplies Node **24.20.0** inside the app. The application source is commit `9172f473a95b63ea3d7442dc6eed892c1be4aaaa`; the release's subsequent documentation changes do not alter the packaged runtime.
+
+| Binary check | Result |
+| --- | --- |
+| Backend/frontend production builds and Windows NSIS/portable packaging | Passed. |
+| Packaged daemon with disposable home/profile | Started; health, task catalog, system API, and built interface available. No inherited provider credentials. |
+| Actual portable executable | Two launches passed with an isolated home/profile, working authenticated API/UI assets, unauthorized requests rejected, and a synthetic memory note preserved across restart. Docker autostart and gateway autostart were disabled for these checks; no real provider call was made. |
+| Packaged document and attachment workers | DOCX, XLSX, PPTX, image attachments, PDF extraction, English OCR, and rich Office checks passed under the bundled runtime. |
+| Source/package parity | 193 application/UI/icon/desktop files matched their source-build hashes; package metadata matched. |
+| NSIS archive integrity | Passed. Installer execution on a fresh Windows machine was not tested. |
+| Package privacy | 4,407 unpacked files checked for private paths and configured credential matches; first-party files checked for owner identifiers. No matches. Packaged first-party files also passed Gitleaks 8.30.1. |
+| Signing | Neither executable is signed. Windows can show publisher/SmartScreen warnings. |
+| Current community CI | Failed: desktop/browser dependencies are not installed by the workflow, and Windows setup fixtures fail on other platforms. Secret scanning passed. This is separate from the existing broad runtime/browser failures above. |
+
+These checks do not qualify real models, real account actions, Docker-backed tasks, fresh-machine installation, versioned upgrades, Windows ARM, macOS, or Linux. The downloadable files are explicitly marked as a **prerelease** for community feedback. SHA-256 checksums accompany the release.
+
 ## Publication privacy review
 
 The snapshot was assembled in a separate clean clone on top of the repository's existing public initial commit. Private local development history was not imported. Personal configuration, `.env`, databases and auth files, browser state, raw local reports, research captures, private planning material, scratch files, build outputs, and dependency folders were excluded.
