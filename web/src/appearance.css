@@ -1,0 +1,101 @@
+/* OpenAgents: paper, ink and terracotta, shared with our public website. */
+:root {
+  --oh-paper: #faf9f6;
+  --oh-orange: #ee6941;
+}
+:root[data-theme='light'] {
+  --gk-bg-app: #f3f1eb;
+  --gk-bg-transcript: #faf9f6;
+  --gk-bg-surface: #fffefa;
+  --gk-bg-raised: #fffefa;
+  --gk-bg-input: #fffefa;
+  --gk-bg-selected: #eeebe3;
+  --gk-bg-bubble-user: #eeebe3;
+  --gk-bg-bubble-assistant: #faf9f6;
+  --gk-focus: #b64b28;
+  --panel: #fffefa;
+}
+:root[data-theme='dark'] {
+  --gk-bg-app: #23231f;
+  --gk-bg-transcript: #1b1c19;
+  --gk-bg-surface: #252621;
+  --gk-bg-raised: #2c2d27;
+  --gk-bg-input: #252621;
+  --gk-bg-selected: #36362f;
+  --gk-bg-bubble-user: #33342d;
+  --gk-bg-bubble-assistant: #22231f;
+  --gk-line: #393a32;
+  --gk-line-strong: #505148;
+  --gk-text: #f1efe7;
+  --gk-text-secondary: #c1c0b6;
+  --gk-text-muted: #a3a397;
+  --gk-focus: #ee946f;
+}
+.grok-welcome h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: 30px; letter-spacing: -.7px; }
+.grok-code-editor.theme-openhours {
+  --editor-bg: var(--gk-bg-transcript);
+  --editor-fg: var(--gk-text);
+  --editor-gutter-bg: var(--gk-bg-app);
+  --editor-gutter-fg: var(--gk-text-muted);
+  --editor-gutter-active: var(--gk-focus);
+  --editor-selection: color-mix(in srgb, var(--oh-orange) 25%, var(--gk-bg-transcript));
+  --editor-cursor: var(--gk-focus);
+  --editor-border: var(--gk-line);
+  --editor-active-line: var(--gk-bg-hover);
+  font-family: var(--gk-font-mono, 'Geist Mono', monospace);
+}
+.grok-code-editor.theme-vs-light { color-scheme: light; }
+.grok-code-editor:is(.theme-vs-dark, .theme-monokai, .theme-github-dark, .theme-one-dark) { color-scheme: dark; }
+.grok-code-editor .grok-code-textarea {
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--editor-bg);
+  color: var(--editor-fg);
+  -webkit-text-fill-color: var(--editor-fg);
+  cursor: text;
+}
+.grok-code-editor .grok-code-textarea:focus { outline: none; border: 0; box-shadow: inset 0 0 0 1px var(--editor-border); }
+.grok-code-line-number.is-active { background: var(--editor-active-line); }
+.grok-file-save-btn.is-dirty:not(:disabled), .grok-file-save-btn.is-dirty:not(:disabled):hover { background: #b64b28; border-color: #b64b28; color: #fffefa; box-shadow: none; }
+.oh-editor-status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 20px; padding: 8px 14px; border-top: 1px solid var(--gk-line); background: var(--gk-bg-surface); color: var(--gk-text-secondary); font: 11px var(--gk-font-mono); }
+.oh-editor-theme-sample { margin-top: 12px; height: auto; min-height: 86px; overflow: hidden; border: 1px solid var(--editor-border); border-radius: 10px; }
+.oh-editor-theme-sample pre { padding: 14px 18px; margin: 0; font: inherit; white-space: pre-wrap; }
+.oh-editor-theme-sample .grok-code-gutter { padding-top: 14px; }
+.oh-theme-preview[data-preview='light'] { --p-rail: #f3f1eb; --p-ground: #faf9f6; --p-line: #e4e3dc; --p-bubble: #b64b28; }
+.oh-theme-preview[data-preview='dark'] { --p-rail: #23231f; --p-ground: #1b1c19; --p-line: #505148; --p-bubble: #ee946f; }
+:root[data-theme='light'] .oh-new-chat,
+:root[data-theme='light'] .grok-input-capsule.oh-composer { background: #fffefa; box-shadow: 0 2px 10px rgb(44 45 39 / 4%); }
+:root[data-theme='light'] .oh-new-chat::after { display: none; }
+:root[data-theme='light'] .grok-bubble-user { box-shadow: none; }
+/* Use opaque paper in Electron as well; the desktop wallpaper must not tint it. */
+html.oh-desktop[data-theme='light'] { --gk-bg-app: #f3f1eb !important; --gk-bg-transcript: #faf9f6 !important; --gk-bg-surface: #fffefa !important; --gk-bg-raised: #fffefa !important; }
+html.oh-desktop[data-theme='light'] .grok-workspace-container,
+html.oh-desktop[data-theme='light'] .grok-sidebar,
+html.oh-desktop[data-theme='light'] .oh-titlebar { background: #f3f1eb !important; }
+html.oh-desktop[data-theme='light'] .grok-chat-pane { background: #faf9f6 !important; }
+html.oh-desktop[data-theme='light'] .grok-details-pane { background: #fffefa !important; }
+:root[data-theme='light'] .cx-root {
+  color-scheme: light;
+  --cx-glass: #faf9f6;
+  --cx-glass-strong: #fffefa;
+  --cx-edge: #e4e3dc;
+  --cx-edge-strong: #d2d1c7;
+  --cx-hover: #eeebe3;
+  --cx-text: #2c2d27;
+  --cx-text-2: #55574d;
+  --cx-muted: #74756d;
+  --gk-bg-app: inherit;
+  --gk-bg-transcript: inherit;
+  --gk-bg-surface: inherit;
+  --gk-bg-raised: inherit;
+  --gk-bg-input: inherit;
+  --gk-bg-hover: inherit;
+  --gk-bg-selected: inherit;
+  --gk-line: inherit;
+  --gk-line-strong: inherit;
+  --gk-text: inherit;
+  --gk-text-secondary: inherit;
+  --gk-text-muted: inherit;
+  --gk-text-inverse: inherit;
+  --gk-accent: inherit;
+}

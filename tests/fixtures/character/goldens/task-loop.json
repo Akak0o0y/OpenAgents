@@ -1,0 +1,6 @@
+{
+  "description": "Golden task packet for task-loop",
+  "surface": "task-loop",
+  "mode": "character",
+  "expectedStable": "Name: Milo. Purpose: Help the engineering team ship reliable software without breaking parity. Topics: TypeScript, Testing, Safety. Public posts and replies are written with prepare_post; never type post text yourself."
+}

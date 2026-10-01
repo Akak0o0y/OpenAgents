@@ -1,0 +1,51 @@
+/* Vendored from Uiverse.io (MIT). Do not hand-edit - re-run
+ * scripts/vendor-uiverse.mjs instead.
+ *
+ * Source:  https://raw.githubusercontent.com/uiverse-io/galaxy/main/loaders/Shoh2008_lucky-quail-40.html
+ * Author:  Shoh2008
+ * A single rotating ring at text size.
+ *
+ * Selectors are prefixed with .uiv-ring-loader and keyframes with "ring-loader-";
+ * everything else is the author's, unchanged.
+ */
+
+/* From Uiverse.io by Shoh2008 - Tags: loader */
+.uiv-ring-loader .loader {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #FFF;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+  box-sizing: border-box;
+  animation: ring-loader-rotation_35 1s linear infinite;
+}
+.uiv-ring-loader .loader::after, .uiv-ring-loader .loader::before {
+  content: '';
+  box-sizing: border-box;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: greenyellow;
+  width: 6px;
+  height: 6px;
+  transform: translate(150%, 150%);
+  border-radius: 50%;
+}
+.uiv-ring-loader .loader::before {
+  left: auto;
+  top: auto;
+  right: 0;
+  bottom: 0;
+  transform: translate(-150%, -150%);
+}
+@keyframes ring-loader-rotation_35 {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+

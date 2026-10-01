@@ -1,0 +1,129 @@
+/* The Cortex constellation. See components/CortexConstellation.tsx.
+
+   Ambience - stars, orbits, the core's sonar, the entrance - is gated on
+   `:not(.is-reduced)`, and the orbit spin additionally on `.is-rotating` (the
+   View panel's Rotation switch). Evidence motion - flowing links, sparks, the
+   active layer's pulse - only exists when the component rendered it, which it
+   does only for layers layerVisual() lets move.
+
+   Prefixed with `.cx-root` like cortex-design.css, to stay ahead of theme.css's
+   bare `button` rules. */
+
+.cx-root .cx-constellation { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(1100px 760px at 50% 54%, color-mix(in srgb, var(--cx-accent) 10%, #0d110d), #0a0d0a 58%, #070907); cursor: grab; touch-action: none; user-select: none; }
+.cx-root .cx-constellation.is-dragging { cursor: grabbing; }
+/* The stage stays centred in the space BETWEEN open panels, not behind them. */
+.cx-root .cx-stage { position: absolute; left: calc(50% + (var(--cx-left) - var(--cx-right)) / 2); top: calc(50% + 12px); transform-origin: center; will-change: transform; transition: left 460ms var(--oh-ease); }
+.cx-root .cx-stage.is-flight { transition: transform 900ms var(--oh-ease), left 460ms var(--oh-ease); }
+.cx-root .cx-sky { position: absolute; inset: 0; overflow: visible; }
+
+/* ------------------------------------------------------------------- sky -- */
+.cx-root .cx-stars circle { fill: #e2eaff; opacity: var(--o); }
+.cx-root .cx-constellation:not(.is-reduced) .cx-stars circle { animation: cx-twinkle 4s ease-in-out infinite; }
+.cx-root .cx-stars { transform-box: fill-box; transform-origin: center; }
+.cx-root .cx-constellation.is-rotating .cx-stars { animation: cx-spin 420s linear infinite; }
+
+.cx-root .cx-core-halo { transform-box: fill-box; transform-origin: center; }
+.cx-root .cx-constellation:not(.is-reduced) .cx-core-halo { animation: cx-halo 5.5s ease-in-out infinite; }
+.cx-root .cx-constellation.is-busy:not(.is-reduced) .cx-core-halo { animation-duration: 2.2s; }
+
+.cx-root .cx-orbits circle { fill: none; stroke: rgba(255, 255, 255, 0.07); stroke-width: 1; stroke-dasharray: 2 11; transform-box: fill-box; transform-origin: center; }
+.cx-root .cx-orbits .is-mid { stroke: color-mix(in srgb, var(--cx-accent) 26%, transparent); stroke-dasharray: 1 8; }
+.cx-root .cx-orbits .is-outer { stroke: rgba(255, 255, 255, 0.05); stroke-dasharray: 46 20 4 20; }
+.cx-root .cx-constellation.is-rotating .cx-orbits circle { animation: cx-spin 140s linear infinite; }
+.cx-root .cx-constellation.is-rotating .cx-orbits .is-mid { animation-duration: 90s; animation-direction: reverse; }
+.cx-root .cx-constellation.is-rotating.is-busy .cx-orbits circle { animation-duration: 36s; }
+
+.cx-root .cx-spiral { fill: none; stroke: rgba(255, 255, 255, 0.13); stroke-width: 1.2; stroke-dasharray: 1; }
+.cx-root .cx-constellation:not(.is-reduced) .cx-spiral { animation: cx-draw 2.4s var(--oh-ease) 0.3s backwards; }
+
+/* ----------------------------------------------------------------- links -- */
+.cx-root .cx-link { transition: opacity 260ms ease; }
+.cx-root .cx-link-base { fill: none; stroke-width: 1.5; stroke-linecap: round; }
+.cx-root .cx-link.is-solid .cx-link-base { opacity: 0.5; stroke-dasharray: 1; }
+.cx-root .cx-link.is-lit .cx-link-base { opacity: 0.95; stroke-width: 2.3; filter: drop-shadow(0 0 4px var(--c)); }
+.cx-root .cx-link.is-inert .cx-link-base { stroke: rgba(140, 150, 165, 0.42); stroke-dasharray: 3 7; opacity: 0.65; }
+.cx-root .cx-constellation:not(.is-reduced) .cx-link.is-solid .cx-link-base { animation: cx-draw 1.2s var(--oh-ease) backwards; animation-delay: calc(var(--i) * 45ms + 260ms); }
+.cx-root .cx-constellation:not(.is-reduced) .cx-link.is-inert { animation: cx-fade 900ms ease backwards; animation-delay: calc(var(--i) * 45ms + 420ms); }
+/* Evidence flowing out from the bot to the layer that produced it. */
+.cx-root .cx-link-flow { fill: none; stroke: var(--c); stroke-width: 2.8; stroke-linecap: round; stroke-dasharray: 1.4 7; filter: drop-shadow(0 0 5px var(--c)); animation: cx-flow 1.15s linear infinite; }
+/* One spark per new event, travelling the whole link once. */
+.cx-root .cx-link-spark { fill: none; stroke: #ffffff; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 0.05 1.2; stroke-dashoffset: 0.05; filter: drop-shadow(0 0 7px var(--c)); animation: cx-spark 1.2s var(--oh-ease) forwards; }
+.cx-root .cx-cap-link { fill: none; stroke: var(--cx-accent); stroke-width: 1.4; stroke-dasharray: 2 5; opacity: 0.7; transition: opacity 260ms ease; }
+.cx-root .cx-constellation:not(.is-reduced) .cx-cap-link { animation: cx-flow-cap 1.6s linear infinite; }
+.cx-root .cx-constellation.has-hover .cx-link.is-faded, .cx-root .cx-constellation.has-hover .cx-cap-link.is-faded { opacity: 0.12; }
+
+/* ------------------------------------------------------------------ core -- */
+.cx-root .cx-core { position: absolute; z-index: 3; width: 0; height: 0; }
+.cx-root .cx-constellation:not(.is-reduced) .cx-core { animation: cx-core-in 1s var(--oh-spring) backwards; }
+.cx-root .cx-core-ring, .cx-root .cx-core-pulse { position: absolute; border-radius: 50%; pointer-events: none; }
+.cx-root .cx-core-ring.is-a { left: -86px; top: -86px; width: 172px; height: 172px; background: conic-gradient(transparent 0 52%, color-mix(in srgb, var(--cx-accent) 60%, #fff) 78%, var(--cx-accent) 88%, transparent 100%); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); }
+.cx-root .cx-core-ring.is-b { left: -104px; top: -104px; width: 208px; height: 208px; border: 1px dashed color-mix(in srgb, var(--cx-accent) 38%, transparent); }
+.cx-root .cx-constellation:not(.is-reduced) .cx-core-ring.is-a { animation: oh-orbit-spin 4.5s linear infinite; }
+.cx-root .cx-constellation:not(.is-reduced) .cx-core-ring.is-b { animation: oh-orbit-spin 34s linear infinite reverse; }
+.cx-root .cx-constellation.is-busy:not(.is-reduced) .cx-core-ring.is-a { animation-duration: 1.3s; }
+.cx-root .cx-core-pulse { left: -64px; top: -64px; width: 128px; height: 128px; border: 2px solid var(--cx-accent); opacity: 0; }
+.cx-root .cx-constellation:not(.is-reduced) .cx-core-pulse { animation: cx-sonar 3.4s var(--oh-ease) infinite; }
+.cx-root .cx-constellation.is-busy:not(.is-reduced) .cx-core-pulse { animation-duration: 1.5s; }
+.cx-root .cx-core-face { position: absolute; left: -64px; top: -64px; display: grid; place-items: center; width: 128px; height: 128px; padding: 0; border: 1px solid color-mix(in srgb, var(--cx-accent) 50%, rgba(255, 255, 255, 0.1)); border-radius: 50%; background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--cx-accent) 30%, #1c201c), #0c0f0c 72%); backdrop-filter: none; box-shadow: 0 0 0 9px color-mix(in srgb, var(--cx-accent) 8%, transparent), 0 0 70px -4px color-mix(in srgb, var(--cx-accent) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.12); cursor: pointer; transition: transform 460ms var(--oh-spring), box-shadow 300ms ease; }
+.cx-root .cx-core-face:hover:not(:disabled) { border-color: color-mix(in srgb, var(--cx-accent) 75%, #fff); background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--cx-accent) 38%, #1c201c), #0c0f0c 72%); transform: scale(1.07); }
+.cx-root .cx-core.is-selected .cx-core-face { box-shadow: 0 0 0 3px #0c0f0c, 0 0 0 6px var(--cx-accent), 0 0 90px -2px color-mix(in srgb, var(--cx-accent) 80%, transparent); }
+.cx-root .cx-core-name { position: absolute; top: 80px; left: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; white-space: nowrap; transform: translateX(-50%); pointer-events: none; }
+.cx-root .cx-core-name strong { color: var(--cx-text); font-size: 16px; font-weight: 600; letter-spacing: -0.3px; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9); }
+
+/* ----------------------------------------------------------------- nodes -- */
+/* A real box the size of its orb, centred on its point with negative margins -
+   margins rather than a transform, because framer owns this element's transform. */
+.cx-root .cx-node { position: absolute; z-index: 2; width: 48px; height: 48px; margin: -24px 0 0 -24px; padding: 0; border: 0; border-radius: 50%; background: transparent; backdrop-filter: none; color: var(--cx-text); font: inherit; cursor: pointer; }
+.cx-root .cx-node:hover:not(:disabled) { border-color: transparent; background: transparent; }
+.cx-root .cx-node:focus-visible { outline: none; }
+.cx-root .cx-node > * { transition: opacity 240ms ease; }
+.cx-root .cx-constellation.has-hover .cx-node.is-faded > * { opacity: 0.2; }
+.cx-root .cx-node.is-tool { width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 13px; }
+.cx-root .cx-node-orb { position: absolute; inset: 0; display: grid; place-items: center; border: 1.5px solid color-mix(in srgb, var(--c) 65%, transparent); border-radius: 50%; background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--c) 32%, #1a1d1a), #0b0e0b 76%); color: color-mix(in srgb, var(--c) 50%, #fff); box-shadow: 0 0 24px -9px var(--c), inset 0 1px 0 rgba(255, 255, 255, 0.08); transition: transform 380ms var(--oh-spring), box-shadow 260ms ease, border-color 260ms ease, opacity 240ms ease; }
+.cx-root .cx-node.is-tool .cx-node-orb { border-radius: 13px; }
+.cx-root .cx-constellation:not(.is-reduced) .cx-node-orb { animation: cx-float 6.5s ease-in-out infinite; animation-delay: calc(var(--i) * -0.73s); }
+.cx-root .cx-node:hover .cx-node-orb, .cx-root .cx-node:focus-visible .cx-node-orb { transform: scale(1.2); box-shadow: 0 0 36px -4px var(--c), 0 0 0 7px color-mix(in srgb, var(--c) 15%, transparent); }
+.cx-root .cx-node.is-lit .cx-node-orb { border-color: var(--c); color: #fff; box-shadow: 0 0 32px -3px var(--c), inset 0 0 14px -5px var(--c); }
+.cx-root .cx-node[data-tone='partial'] .cx-node-orb { border-bottom-color: color-mix(in srgb, var(--c) 18%, transparent); border-left-color: color-mix(in srgb, var(--c) 18%, transparent); }
+.cx-root .cx-node[data-tone='hollow'] .cx-node-orb, .cx-root .cx-node[data-tone='planned'] .cx-node-orb { border: 1.5px dashed rgba(140, 150, 165, 0.55); background: rgba(11, 14, 11, 0.88); color: var(--cx-muted); box-shadow: none; }
+.cx-root .cx-node.is-selected .cx-node-orb { transform: scale(1.14); box-shadow: 0 0 0 3px #0b0e0b, 0 0 0 5px var(--c), 0 0 42px -4px var(--c); }
+.cx-root .cx-node[data-tone='hollow'].is-selected .cx-node-orb, .cx-root .cx-node[data-tone='planned'].is-selected .cx-node-orb { box-shadow: 0 0 0 3px #0b0e0b, 0 0 0 5px rgba(140, 150, 165, 0.6); }
+/* The layer that produced the newest event sends out rings. */
+.cx-root .cx-constellation:not(.is-reduced) .cx-node.is-pulsing .cx-node-orb::after { content: ''; position: absolute; inset: -2px; border: 2px solid var(--c); border-radius: inherit; animation: cx-sonar 1.7s var(--oh-ease) infinite; }
+.cx-root .cx-node-index { position: absolute; right: -5px; bottom: -5px; min-width: 17px; height: 17px; padding: 0 4px; border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); border-radius: 999px; background: #0b0e0b; color: color-mix(in srgb, var(--c) 65%, #fff); font: 600 9px/15px var(--gk-font-mono); text-align: center; }
+.cx-root .cx-node[data-tone='hollow'] .cx-node-index { border-style: dashed; color: var(--cx-muted); }
+.cx-root .cx-node-count { position: absolute; left: 34px; top: -10px; min-width: 20px; height: 18px; padding: 0 6px; border-radius: 999px; background: var(--c); color: #0b0b0b; font: 700 10px/18px var(--gk-font-mono); text-align: center; box-shadow: 0 0 14px -2px var(--c); animation: cx-bump 520ms var(--oh-spring) backwards; }
+
+.cx-root .cx-node-label { position: absolute; display: flex; flex-direction: column; gap: 1px; padding: 4px 9px 5px; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; background: rgba(8, 10, 8, 0.66); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); text-align: left; white-space: nowrap; pointer-events: none; transition: background-color 200ms ease, border-color 200ms ease, opacity 240ms ease; }
+.cx-root .cx-node:hover .cx-node-label, .cx-root .cx-node.is-selected .cx-node-label { border-color: color-mix(in srgb, var(--c) 40%, transparent); background: rgba(8, 10, 8, 0.9); }
+.cx-root .cx-node-label strong { color: var(--cx-text); font-size: 12px; font-weight: 550; }
+.cx-root .cx-node-label small { color: color-mix(in srgb, var(--c) 55%, #b9beb7); font-size: 10px; }
+.cx-root .cx-node[data-tone='hollow'] .cx-node-label small, .cx-root .cx-node[data-tone='planned'] .cx-node-label small { color: var(--cx-muted); }
+.cx-root .cx-node[data-tone='hollow'] .cx-node-label strong, .cx-root .cx-node[data-tone='planned'] .cx-node-label strong { color: var(--cx-text-2); }
+.cx-root .cx-node[data-side='right'] .cx-node-label { top: 50%; left: calc(100% + 10px); transform: translateY(-50%); }
+.cx-root .cx-node[data-side='left'] .cx-node-label { top: 50%; right: calc(100% + 10px); align-items: flex-end; text-align: right; transform: translateY(-50%); }
+.cx-root .cx-node[data-side='top'] .cx-node-label { bottom: calc(100% + 10px); left: 50%; align-items: center; text-align: center; transform: translateX(-50%); }
+.cx-root .cx-node[data-side='bottom'] .cx-node-label { top: calc(100% + 10px); left: 50%; align-items: center; text-align: center; transform: translateX(-50%); }
+
+/* ------------------------------------------------------------ zoom, legend -- */
+.cx-root .cx-zoom { position: absolute; z-index: 11; right: calc(var(--cx-right) + 14px); bottom: 14px; display: flex; flex-direction: column; gap: 2px; padding: 4px; border: 1px solid var(--cx-edge); border-radius: 14px; background: var(--cx-glass); backdrop-filter: var(--cx-blur); -webkit-backdrop-filter: var(--cx-blur); box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.85); transition: right 440ms var(--oh-ease); animation: cx-rise 600ms var(--oh-ease) 320ms backwards; }
+.cx-root .cx-legend-flow { flex: 0 0 26px; width: 26px; height: 2px; margin: 0; border-radius: 2px; background: repeating-linear-gradient(90deg, var(--oh-bot) 0 4px, transparent 4px 8px); background-size: 16px 2px; box-shadow: 0 0 6px var(--oh-bot); }
+.cx-root .cx-constellation:not(.is-reduced) ~ .cx-legend .cx-legend-flow { animation: cx-legend-flow 700ms linear infinite; }
+
+@keyframes cx-twinkle { 0%, 100% { opacity: var(--o); } 50% { opacity: calc(var(--o) * 0.2); } }
+@keyframes cx-spin { to { transform: rotate(360deg); } }
+@keyframes cx-halo { 0%, 100% { opacity: 0.7; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes cx-draw { from { stroke-dashoffset: 1; } }
+@keyframes cx-fade { from { opacity: 0; } }
+@keyframes cx-flow { to { stroke-dashoffset: -8.4; } }
+@keyframes cx-flow-cap { to { stroke-dashoffset: -7; } }
+@keyframes cx-spark { from { stroke-dashoffset: 0.05; opacity: 1; } 85% { opacity: 1; } to { stroke-dashoffset: -1.02; opacity: 0; } }
+@keyframes cx-core-in { from { opacity: 0; transform: scale(0.3); } }
+@keyframes cx-sonar { 0% { opacity: 0.55; transform: scale(1); } 100% { opacity: 0; transform: scale(2.3); } }
+@keyframes cx-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
+@keyframes cx-bump { 0% { transform: scale(0.4); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes cx-legend-flow { to { background-position: 16px 0; } }
+
+@media (max-width: 640px) {
+  .cx-root .cx-zoom { display: none; }
+}

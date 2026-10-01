@@ -1,0 +1,30 @@
+{
+  "source": "https://github.com/uiverse-io/galaxy",
+  "licence": "MIT",
+  "elements": [
+    {
+      "slug": "orbit-loader",
+      "from": "loaders/VashonG_spicy-crab-68.html",
+      "note": "Twelve diamonds on a rotating ring. Colour is one HSL pair, so it themes cleanly.",
+      "author": "VashonG",
+      "url": "https://raw.githubusercontent.com/uiverse-io/galaxy/main/loaders/VashonG_spicy-crab-68.html",
+      "markup": "<figure>\n  <div style=\"--i: 1\"></div>\n  <div style=\"--i: 2\"></div>\n  <div style=\"--i: 3\"></div>\n  <div style=\"--i: 4\"></div>\n  <div style=\"--i: 5\"></div>\n  <div style=\"--i: 6\"></div>\n  <div style=\"--i: 7\"></div>\n  <div style=\"--i: 8\"></div>\n  <div style=\"--i: 9\"></div>\n  <div style=\"--i: 10\"></div>\n  <div style=\"--i: 11\"></div>\n  <div style=\"--i: 12\"></div>\n</figure>"
+    },
+    {
+      "slug": "pulse-loader",
+      "from": "loaders/Shoh2008_ugly-elephant-80.html",
+      "note": "A small two-tone pulse, for inline waiting.",
+      "author": "Shoh2008",
+      "url": "https://raw.githubusercontent.com/uiverse-io/galaxy/main/loaders/Shoh2008_ugly-elephant-80.html",
+      "markup": "<div class=\"loader\"></div>"
+    },
+    {
+      "slug": "ring-loader",
+      "from": "loaders/Shoh2008_lucky-quail-40.html",
+      "note": "A single rotating ring at text size.",
+      "author": "Shoh2008",
+      "url": "https://raw.githubusercontent.com/uiverse-io/galaxy/main/loaders/Shoh2008_lucky-quail-40.html",
+      "markup": "<span class=\"loader\"></span>"
+    }
+  ]
+}

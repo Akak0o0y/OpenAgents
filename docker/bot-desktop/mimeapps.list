@@ -1,0 +1,34 @@
+# System-wide default applications for the bot desktop.
+#
+# The Ubuntu base ships defaults.list mapping inode/directory to Nautilus, which
+# is not installed here. xdg-open then resolved a missing .desktop file and
+# exited silently, so Chrome's "Show in folder" appeared to do nothing. Every
+# association below is verified against an installed .desktop file at build time.
+[Default Applications]
+inode/directory=thunar.desktop
+x-directory/normal=thunar.desktop
+
+text/plain=org.xfce.mousepad.desktop
+text/markdown=org.xfce.mousepad.desktop
+text/csv=org.xfce.mousepad.desktop
+application/json=org.xfce.mousepad.desktop
+application/xml=org.xfce.mousepad.desktop
+
+image/png=org.xfce.ristretto.desktop
+image/jpeg=org.xfce.ristretto.desktop
+image/gif=org.xfce.ristretto.desktop
+image/webp=org.xfce.ristretto.desktop
+image/bmp=org.xfce.ristretto.desktop
+image/tiff=org.xfce.ristretto.desktop
+image/svg+xml=org.xfce.ristretto.desktop
+
+application/zip=xarchiver.desktop
+application/x-tar=xarchiver.desktop
+application/gzip=xarchiver.desktop
+application/x-7z-compressed=xarchiver.desktop
+
+# Chrome renders PDFs well, so the desktop carries no second PDF stack.
+application/pdf=google-chrome.desktop
+text/html=google-chrome.desktop
+x-scheme-handler/http=google-chrome.desktop
+x-scheme-handler/https=google-chrome.desktop

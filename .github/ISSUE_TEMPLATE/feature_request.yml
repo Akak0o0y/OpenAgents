@@ -1,0 +1,19 @@
+name: Improvement proposal
+description: Suggest a useful change
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and alternatives
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Testing, permissions, compatibility, and licensing considerations

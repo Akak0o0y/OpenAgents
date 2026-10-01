@@ -1,0 +1,32 @@
+/* Vendored from Uiverse.io (MIT). Do not hand-edit - re-run
+ * scripts/vendor-uiverse.mjs instead.
+ *
+ * Source:  https://raw.githubusercontent.com/uiverse-io/galaxy/main/loaders/Shoh2008_ugly-elephant-80.html
+ * Author:  Shoh2008
+ * A small two-tone pulse, for inline waiting.
+ *
+ * Selectors are prefixed with .uiv-pulse-loader and keyframes with "pulse-loader-";
+ * everything else is the author's, unchanged.
+ */
+
+/* From Uiverse.io by Shoh2008 - Tags: loader */
+.uiv-pulse-loader .loader {
+  width: 45px;
+  height: 40px;
+  background: linear-gradient(#0000 calc(1*100%/6),#fff 0 calc(3*100%/6),#0000 0),
+            linear-gradient(#0000 calc(2*100%/6),#fff 0 calc(4*100%/6),#0000 0),
+            linear-gradient(#0000 calc(3*100%/6),#fff 0 calc(5*100%/6),#0000 0);
+  background-size: 10px 400%;
+  background-repeat: no-repeat;
+  animation: pulse-loader-matrix 1s infinite linear;
+}
+@keyframes pulse-loader-matrix {
+  0% {
+    background-position: 0% 100%, 50% 100%, 100% 100%
+  }
+
+  100% {
+    background-position: 0% 0%, 50% 0%, 100% 0%
+  }
+}
+

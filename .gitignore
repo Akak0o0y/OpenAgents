@@ -1,0 +1,70 @@
+node_modules/
+dist/
+.env
+.env.*
+# ...but the template MUST ship, or nobody knows what to put in .env
+!.env.example
+*.log
+/data/
+*.db.auth.json
+*.db.lock
+evals/reports/
+temp-*.db
+temp-*.db-wal
+temp-*.db-shm
+evals/cache/
+
+# Cortex UI (web/) has its own package and build output
+web/node_modules/
+web/dist/
+.playwright-mcp/
+
+# Build artifacts that leak into source dirs
+*.tsbuildinfo
+tests/*.test.js
+tests/*.test.d.ts
+
+# Incremental index for the local provider usage scan. A derived cache of
+# session-log byte offsets and token tallies - rebuilt on demand, machine-specific.
+local-usage-index.json
+local-usage-index.json.tmp
+
+# Packaged application output. Installers are build artifacts, not source, and
+# a 113 MB binary does not belong in git history.
+desktop/release/
+desktop/release2/
+desktop/release-harness-20260919/
+desktop/release-harness-20260920/
+desktop/release-startup-20260920/
+desktop/build/icon.ico
+desktop/build/icon.png
+
+*.db.lock.claim
+
+desktop/release-daily-20260920/
+
+# Private installation data and publication-excluded working material.
+openhours.config.json
+openhours.config.dev.json
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.auth.json
+*.pem
+*.p12
+*.pfx
+/scratch/
+/output/
+/.planning/
+/.claude/
+/.superpowers/
+/.vscode/
+/docs/grokbot-reference/
+/docs/validation/
+/docs/audits/
+/desktop/release*/
+/playwright-report/
+/test-results/
+*.timestamp-*.mjs

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      The startup screen. Loaded from the application's own files, so it shows
+      while the server that serves the real interface is still starting - or
+      when it cannot start at all. Before this screen existed, a server that
+      failed left the window hidden, and the app simply looked like it had not
+      opened.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenAgents</title>
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="startup.css" />
+  </head>
+  <body>
+    <header class="titlebar">
+      <div class="drag"></div>
+      <div class="controls" id="controls">
+        <button type="button" class="control" id="minimize" aria-label="Minimize">
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor" /></svg>
+        </button>
+        <button type="button" class="control danger" id="close" aria-label="Close">
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="stage" id="stage" data-status="checking">
+      <div class="mark" aria-hidden="true">
+        <span class="ring r1"></span>
+        <span class="ring r2"></span>
+        <span class="ring r3"></span>
+        <span class="core"></span>
+        <span class="spark"></span>
+      </div>
+
+      <h1 id="title">Starting OpenAgents</h1>
+      <p class="lede" id="lede">Getting your bots ready. This takes a few seconds the first time.</p>
+
+      <ol class="steps" aria-live="polite">
+        <li class="step" id="step-profile" data-state="active">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="label">Opening your profile</span>
+        </li>
+        <li class="step" id="step-server" data-state="waiting">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="label">Starting the local server</span>
+          <span class="meta" id="elapsed"></span>
+        </li>
+        <li class="step" id="step-docker" data-state="waiting">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="label" id="docker-label">Checking Docker</span>
+        </li>
+      </ol>
+
+      <p class="detail" id="detail" hidden></p>
+
+      <section class="docker-card" id="docker-card" hidden>
+        <p id="docker-message"></p>
+        <p class="hint">Chat works without Docker. Tasks that run code need it.</p>
+        <div class="actions">
+          <button type="button" class="btn" id="docker-start" hidden>Start Docker Desktop</button>
+          <a class="btn" id="docker-download" href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noreferrer" hidden>Download Docker Desktop</a>
+          <a class="btn" id="wsl-help" href="https://learn.microsoft.com/windows/wsl/install" target="_blank" rel="noreferrer" hidden>How to install WSL</a>
+        </div>
+      </section>
+
+      <div class="actions main-actions" id="failure-actions" hidden>
+        <button type="button" class="btn primary" id="retry">Try again</button>
+        <button type="button" class="btn" id="copy">Copy diagnostics</button>
+        <button type="button" class="btn" id="logs">Open logs folder</button>
+      </div>
+      <p class="toast" id="toast" role="status" aria-live="polite"></p>
+    </main>
+
+    <script src="startup.js"></script>
+  </body>
+</html>

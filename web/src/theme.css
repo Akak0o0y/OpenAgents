@@ -1,0 +1,5143 @@
+/*
+ * Full-bleed Cortex.
+ *
+ * The canvas is the page. Every panel is a translucent drawer floating over it,
+ * hidden until asked for, so the default state of the screen is the agent
+ * architecture and nothing else.
+ */
+
+:root {
+  --bg: var(--gk-bg-app, #131812);
+  --panel: rgba(20, 24, 19, 0.88);
+  --panel-solid: var(--gk-bg-surface, #141414);
+  --panel-raised: var(--gk-bg-raised, #1a1a1a);
+  --line: var(--gk-line, rgba(255, 255, 255, 0.08));
+  --line-strong: var(--gk-line-strong, #2e2e2e);
+  --fg: var(--gk-text, #ededed);
+  --muted: var(--gk-text-muted, #7d7d7d);
+  --accent: var(--gk-text, #ededed);
+  --ok: #45a557;
+  --err: #e5484d;
+  --partial: #f5a623;
+  --hollow: #4a5263;
+  --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: var(--gk-font-sans, 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif);
+  --glass: blur(20px) saturate(1.2);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.55 var(--sans);
+  overflow: hidden;
+}
+
+.app { position: relative; height: 100%; width: 100%; }
+
+/* Custom sleek scrollbars matching Grokbot across all Cortex drawers and panels */
+.sidebar::-webkit-scrollbar,
+.drawer::-webkit-scrollbar,
+.drawer *::-webkit-scrollbar,
+.timeline::-webkit-scrollbar,
+.workspace::-webkit-scrollbar,
+.control::-webkit-scrollbar,
+.focus::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.sidebar::-webkit-scrollbar-track,
+.drawer::-webkit-scrollbar-track,
+.drawer *::-webkit-scrollbar-track,
+.timeline::-webkit-scrollbar-track,
+.workspace::-webkit-scrollbar-track,
+.control::-webkit-scrollbar-track,
+.focus::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb,
+.drawer::-webkit-scrollbar-thumb,
+.drawer *::-webkit-scrollbar-thumb,
+.timeline::-webkit-scrollbar-thumb,
+.workspace::-webkit-scrollbar-thumb,
+.control::-webkit-scrollbar-thumb,
+.focus::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover,
+.drawer::-webkit-scrollbar-thumb:hover,
+.drawer *::-webkit-scrollbar-thumb:hover,
+.focus::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+/* ---------- the galaxy fills the page ---------- */
+
+.galaxy { position: fixed; inset: 0; z-index: 0; }
+.galaxy canvas { display: block; width: 100% !important; height: 100% !important; }
+
+/* Readout pinned to the bottom, over the canvas. */
+.galaxy-readout {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  max-width: min(920px, calc(100vw - 32px));
+  padding: 8px 18px;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  background: var(--panel);
+  backdrop-filter: var(--glass);
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--sans);
+  text-align: center;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- floating chrome ---------- */
+
+.hud {
+  position: fixed;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  top: calc(var(--oh-titlebar-height, 0px) + 14px);
+}
+.hud-left { left: 16px; }
+.hud-right { right: 16px; }
+
+.title { display: flex; align-items: center; gap: 8px; }
+.title h1 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: var(--sans);
+}
+
+button {
+  background: var(--panel-raised);
+  backdrop-filter: var(--glass);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+button:hover:not(:disabled) {
+  background: var(--gk-bg-hover, rgba(255, 255, 255, 0.08));
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--fg);
+}
+button:disabled { opacity: 0.38; cursor: default; }
+
+.icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.hud-pill-btn {
+  border-radius: 9999px !important;
+  background: var(--panel-raised) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--fg) !important;
+  padding: 5px 14px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+.hud-pill-btn:hover {
+  background: var(--gk-bg-hover, rgba(255, 255, 255, 0.1)) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+.hud-bot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  padding: 4px 12px 4px 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 12px;
+  font-family: var(--sans);
+  color: var(--fg);
+}
+.hud-bot-pill:hover {
+  background: var(--gk-bg-hover, rgba(255, 255, 255, 0.08));
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.hud-bot-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  padding: 6px;
+  min-width: 180px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hud-bot-select-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  font-size: 12px;
+  font-family: var(--sans);
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+.hud-bot-select-item:hover,
+.hud-bot-select-item.active {
+  background: var(--gk-bg-hover, rgba(255, 255, 255, 0.08));
+}
+
+.link {
+  background: none; border: none; padding: 0;
+  color: var(--fg); text-decoration: underline; cursor: pointer;
+}
+
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--hollow); flex: none; }
+.dot.open { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.dot.connecting { background: var(--partial); }
+.dot.closed { background: var(--err); }
+
+.hint {
+  position: fixed; left: 16px; top: calc(var(--oh-titlebar-height, 0px) + 58px); z-index: 3;
+  padding: 8px 14px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); backdrop-filter: var(--glass);
+  color: var(--muted); font-size: 12px;
+  font-family: var(--sans);
+}
+
+.error {
+  top: calc(var(--oh-titlebar-height, 0px) + 58px); left: 50%; transform: translateX(-50%);
+  padding: 10px 16px;
+  border: 1px solid var(--err); border-radius: 8px;
+  background: var(--panel); backdrop-filter: var(--glass);
+  color: var(--err); max-width: 60ch;
+  font-family: var(--sans);
+}
+
+/* ---------- drawers: hidden until asked for ---------- */
+
+.drawer {
+  position: fixed;
+  top: var(--oh-titlebar-height, 0px);
+  bottom: 0;
+  width: min(340px, 88vw);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  backdrop-filter: var(--glass);
+  border: 1px solid var(--line);
+  visibility: hidden;
+  transition: transform 220ms ease, visibility 0s linear 220ms;
+  font-family: var(--sans);
+}
+.drawer.open { visibility: visible; transition: transform 220ms ease, visibility 0s; }
+
+.drawer.left { left: 0; border-left: none; transform: translateX(-102%); }
+.drawer.left.open { transform: translateX(0); }
+.drawer.right { right: 0; border-right: none; transform: translateX(102%); }
+.drawer.right.open { transform: translateX(0); }
+
+.drawer.config {
+  visibility: visible;
+  top: calc(var(--oh-titlebar-height, 0px) + 56px); right: 16px; bottom: auto;
+  width: min(340px, calc(100vw - 32px));
+  border-radius: 12px;
+  padding: 14px 16px;
+  gap: 12px;
+  transform: none;
+}
+
+.drawer-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.drawer.config .drawer-head { padding: 0 0 10px; }
+.drawer-head h2 {
+  margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer { transition: none; }
+}
+
+/* ---------- fleet ---------- */
+
+.sidebar { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+.sidebar > *:not(.drawer-head) { padding-left: 14px; padding-right: 14px; }
+
+.sidebar h2 {
+  margin: 16px 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.sidebar-head {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--muted); font-size: 11.5px; padding-top: 12px;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 11px; }
+
+.agent { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.agent-line { display: flex; justify-content: space-between; gap: 8px; }
+.btns { display: flex; gap: 6px; margin-top: 6px; }
+
+.runs { display: flex; flex-direction: column; gap: 4px; padding-bottom: 16px; }
+.run {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px; align-items: center; text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--gk-bg-surface, #141414);
+}
+.run:hover {
+  background: var(--gk-bg-hover, rgba(255, 255, 255, 0.06));
+  border-color: var(--line);
+}
+.run.selected {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--gk-bg-raised, #1a1a1a);
+}
+.run-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.run-status { font-size: 10.5px; font-weight: 500; }
+.kill { color: var(--err); font-size: 11px; cursor: pointer; }
+
+/* ---------- run detail ---------- */
+
+.tabs {
+  display: flex; gap: 4px; background: rgba(0, 0, 0, 0.3); padding: 3px; border-radius: 8px;
+}
+.tabs button {
+  background: transparent; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11.5px;
+}
+.tabs button.on {
+  background: var(--panel-raised); border: 1px solid var(--line); color: var(--fg); font-weight: 600;
+}
+
+.timeline, .workspace, .control { flex: 1; overflow-y: auto; padding: 12px 16px; min-height: 0; }
+
+.control h3 {
+  margin: 14px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.control h3:first-child { margin-top: 0; }
+.control p { margin: 4px 0; font-size: 12px; }
+.control textarea {
+  width: 100%; margin: 4px 0 6px; padding: 8px;
+  background: rgba(0, 0, 0, 0.35); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 6px;
+  font: inherit; font-size: 12px; resize: vertical;
+}
+.control textarea:disabled { opacity: 0.45; }
+.control .note {
+  margin-top: 10px; padding: 8px 10px; font-size: 11.5px;
+  border: 1px solid var(--line); border-radius: 6px; color: var(--muted);
+}
+.approval { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.approval.decided { opacity: 0.65; }
+.approval-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.ev {
+  display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto;
+  gap: 8px; padding: 5px 0; font-size: 11.5px;
+  border-bottom: 1px solid var(--line);
+}
+.ev-layer { color: var(--fg); font-weight: 600; text-align: right; }
+.ev-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); }
+.ev-detail, .ev-time { font-size: 10.5px; color: var(--muted); }
+
+.files { display: flex; flex-direction: column; gap: 4px; }
+.files .selected { border-color: rgba(255, 255, 255, 0.25); }
+.file-view {
+  margin: 10px 0 0; padding: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--line); border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 11.5px; white-space: pre-wrap; word-break: break-word; overflow-x: auto;
+}
+
+/* ---------- focus card ---------- */
+
+.focus {
+  position: fixed;
+  right: 16px; top: calc(var(--oh-titlebar-height, 0px) + 56px);
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  z-index: 5;
+  padding: 16px;
+  background: var(--panel);
+  backdrop-filter: var(--glass);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  font-family: var(--sans);
+}
+.focus.inert { border-color: var(--line); }
+.focus-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+.badge {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em; padding: 3px 8px;
+  border-radius: 9999px; border: 1px solid currentColor;
+}
+.badge.live { color: var(--ok); }
+.badge.partial { color: var(--partial); }
+.badge.hollow, .badge.planned { color: var(--muted); }
+
+.focus h3 { margin: 10px 0 4px; font-size: 15px; font-weight: 600; }
+.focus h4 {
+  margin: 12px 0 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.focus p { margin: 0; font-size: 12px; line-height: 1.55; }
+.evidence { margin: 0; padding-left: 16px; font-size: 11.5px; }
+.evidence code { color: var(--fg); font-family: var(--mono); }
+.focus-foot {
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid var(--line); font-size: 11px;
+}
+
+.focus-bot-link-box {
+  margin: 12px 0 8px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.focus-bot-link-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg);
+}
+.link-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.link-indicator.connected {
+  background: #10B981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+.link-indicator.disconnected {
+  background: var(--muted);
+}
+.link-toggle-btn {
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.focus-nexus-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.focus-nexus-info {
+  flex: 1;
+  min-width: 0;
+}
+.focus-nexus-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.focus-nexus-status {
+  font-size: 11px;
+  color: var(--muted);
+}
+.focus-caps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.focus-cap-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+
+/* ---------- config rows ---------- */
+
+.config .row {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px;
+  align-items: center; font-size: 11.5px; padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.config .row em { color: var(--muted); font-style: normal; font-size: 10.5px; grid-column: 2; }
+.config .row input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.config .row input[type="number"] { width: 90px; }
+.config input, .config select {
+  background: rgba(0, 0, 0, 0.35); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 3px;
+  padding: 2px 6px; font: inherit; font-size: 11px;
+}
+.config .note { margin: 4px 0 0; font-size: 10.5px; color: var(--muted); line-height: 1.5; }
+
+/* When the focus card and the config panel both want the top-right, the config
+   panel wins and the focus card steps down so neither is unreadable. */
+.drawer.config ~ .focus { top: 300px; }
+
+/* ---------- chat ---------- */
+
+.drawer.chat { width: min(420px, 92vw); }
+
+.thread-picker {
+  margin: 10px 14px 0;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 11px;
+}
+
+.messages { flex: 1; overflow-y: auto; padding: 12px 14px; min-height: 0; }
+
+.msg { margin-bottom: 14px; }
+.msg-role {
+  font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 3px;
+}
+.msg.user .msg-role { color: var(--accent); }
+.msg-body { font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.msg.user .msg-body {
+  padding: 7px 9px;
+  background: rgba(91, 157, 255, 0.08);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+.msg-meta { font-size: 9.5px; margin-top: 3px; }
+
+.chat-error {
+  margin: 0 14px 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--err);
+  border-radius: 3px;
+  color: var(--err);
+  font-size: 11px;
+}
+
+.composer { padding: 10px 14px 14px; border-top: 1px solid var(--line); }
+.composer textarea {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 7px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+.composer textarea:disabled { opacity: 0.45; }
+
+/* ---------- BotFace styling & interactive cards ---------- */
+.bot-face {
+  position: relative;
+  flex-shrink: 0;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bot-face.interactive:hover {
+  transform: scale(1.06);
+}
+.bot-face.interactive:active {
+  transform: scale(0.94);
+}
+.agent-card {
+  padding: 12px;
+  margin: 6px 14px;
+  background: var(--gk-bg-surface, #141414);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.agent-card:hover {
+  background: var(--gk-bg-raised, #1a1a1a);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.agent-card.selected-agent {
+  background: var(--gk-bg-raised, #1a1a1a);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.05);
+}
+.agent-row-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.agent-info {
+  flex: 1;
+  min-width: 0;
+}
+.agent-expanded {
+  margin-top: 6px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.agent-face-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+.agent-traits {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.trait-tag {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+}
+.emotion-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  max-width: 260px;
+}
+.emotion-pill {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: var(--gk-bg-surface, #141414);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--sans);
+}
+.emotion-pill:hover, .emotion-pill.active {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--fg);
+  background: var(--gk-bg-hover, rgba(255, 255, 255, 0.1));
+}
+.msg-role-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==========================================================================
+   OPENAGENTS BOT WORKSPACE
+   --------------------------------------------------------------------------
+   A three-column messaging workspace: fixed bot list, flexible conversation,
+   collapsible details. Every colour is a token, so the theme selector in app
+   settings can actually change the theme instead of pretending to; the dark
+   palette is the default and the light one is a real override.
+
+   THE PALETTE IS VERCEL'S, THE SHAPES ARE GOOGLE'S.
+
+   Those two systems disagree about exactly one thing, and it is worth naming
+   rather than splitting the difference by accident:
+
+     Vercel is a NEUTRAL, HIGH-CONTRAST system. Near-black or pure white
+     ground, a long ramp of true greys with no hue in them, hairline borders
+     doing the work that fills do elsewhere, and colour reserved for meaning -
+     focus, danger, success - never for decoration. Its radii are small and
+     its surfaces are flat.
+
+     Google's is a TACTILE system. Fully rounded controls, state layers rather
+     than colour swaps for hover and press, and generous padding so a target
+     is comfortable before it is compact.
+
+   Taking the palette from one and the shapes from the other is deliberate:
+   the grey ramp is what makes a translucent window readable over an unknown
+   wallpaper, and the rounding and state layers are what make it feel like
+   something built for a pointer rather than a document. Radii and spacing
+   come from Google; every colour below is Vercel's.
+
+   The greys are Vercel's published scale rather than approximations, which is
+   why they are pure neutrals - no blue cast - and why the steps are uneven:
+   they are spaced by perceived contrast, not by arithmetic.
+   ========================================================================== */
+
+/* Geist, self-hosted. SIL OFL 1.1, so bundling and redistributing it is
+   permitted - see THIRD_PARTY_NOTICES.md. Two variable faces cover every
+   weight the interface uses, which is why there is no per-weight file list.
+   `font-display: swap` because a shell that renders no text until a font
+   loads is worse than one that reflows once. */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --gk-font-size-xs: 11px;
+  --gk-font-size-sm: 12px;
+  --gk-font-size-base: 13px;
+  --gk-font-size-lg: 14px;
+  --gk-line-height-xs: 14px;
+  --gk-line-height-sm: 16px;
+  --gk-line-height-base: 18px;
+  --gk-line-height-lg: 22px;
+  --gk-weight-regular: 400;
+  --gk-weight-medium: 500;
+  --gk-weight-semibold: 600;
+
+  /* Google's rounding, not Vercel's. `full` is the one that matters: buttons,
+     inputs and chips are capsules, which is the single clearest signal that a
+     thing is pressable rather than printed. */
+  --gk-radius-xs: 4px;
+  --gk-radius-sm: 6px;
+  --gk-radius-base: 8px;
+  --gk-radius-lg: 12px;
+  --gk-radius-xl: 16px;
+  --gk-radius-2xl: 20px;
+  --gk-radius-3xl: 24px;
+  --gk-radius-4xl: 28px;
+  --gk-radius-full: 9999px;
+
+  --gk-space-0-5: 2px;
+  --gk-space-1: 4px;
+  --gk-space-1-5: 6px;
+  --gk-space-2: 8px;
+  --gk-space-2-5: 10px;
+  --gk-space-3: 12px;
+  --gk-space-3-5: 14px;
+  --gk-space-4: 16px;
+  --gk-space-5: 20px;
+  --gk-space-6: 24px;
+
+  --gk-font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text',
+    'Segoe UI', Roboto, system-ui, sans-serif;
+  --gk-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Column sizes measured from the 1047x766 and 1536x864 captures. */
+  --gk-sidebar-width: 280px;
+  --gk-details-width: 320px;
+  --gk-header-height: 50px;
+
+  /* --- Dark (default) --- */
+  /* Which palette the BROWSER paints native controls in. Without it an
+     unstyled textarea, a select's option list or a number spinner is drawn in
+     the UA's light scheme - white fields in the middle of a dark interface. */
+  color-scheme: dark;
+  --gk-bg-app: #131812;
+  --gk-bg-transcript: #0a0a0a;
+  --gk-bg-surface: #141414;
+  --gk-bg-raised: #1a1a1a;
+  --gk-bg-input: #141414;
+  /* State layers, Google's mechanic: a translucent white wash over whatever
+     the surface is, so one value is correct on every background instead of a
+     hand-picked colour per component. */
+  --gk-bg-hover: rgba(255, 255, 255, 0.06);
+  --gk-bg-selected: #1f1f1f;
+  --gk-bg-bubble-assistant: #171717;
+  --gk-bg-bubble-user: #262626;
+  --gk-bg-overlay: rgba(0, 0, 0, 0.7);
+
+  --gk-line: #1f1f1f;
+  --gk-line-strong: #2e2e2e;
+
+  --gk-text: #ededed;
+  --gk-text-secondary: #a1a1a1;
+  --gk-text-muted: #7d7d7d;
+  --gk-text-inverse: #0a0a0a;
+
+  /* Monochrome, because Vercel's primary action is a white button on black,
+     not a blue one. Colour is kept for meaning below. */
+  --gk-accent: #ededed;
+  /* Vercel blue-700. Focus, selection, and nothing decorative. */
+  --gk-focus: #0072f5;
+  --gk-danger: #e5484d;
+  --gk-ok: #45a557;
+  --gk-warn: #f5a623;
+
+  --gk-shadow-popover: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --gk-skeleton: rgba(255, 255, 255, 0.08);
+  /* The select chevron, as a data URI.
+     A background image cannot inherit `currentColor`, so the stroke is baked in
+     and this token is redefined per theme rather than the rule duplicated.
+     `%23` is a URL-encoded `#`, which a data URI requires. */
+  --gk-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237d7d7d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  /* The OpenAgents website's palette: warm paper, ink, sage greys and hairlines
+     the colour of the page edge. Primary actions are ink, as on the site. */
+  --gk-bg-app: #f3f2ec;
+  --gk-bg-transcript: #faf9f6;
+  --gk-bg-surface: #fffefa;
+  --gk-bg-raised: #fffefb;
+  --gk-bg-input: #fffefa;
+  --gk-bg-hover: rgba(44, 45, 39, 0.05);
+  --gk-bg-selected: #ecebe4;
+  --gk-bg-bubble-assistant: #f2f1ea;
+  --gk-bg-bubble-user: #eceee4;
+  --gk-bg-overlay: rgba(44, 45, 39, 0.28);
+  --gk-line: #e4e3dc;
+  --gk-line-strong: #d2d1c7;
+  --gk-text: #2c2d27;
+  --gk-text-secondary: #55574d;
+  --gk-text-muted: #74756d;
+  --gk-text-inverse: #faf9f6;
+  --gk-accent: #2c2d27;
+  --gk-focus: #b64b28;
+  --gk-danger: #d24a3c;
+  --gk-ok: #4c7a3f;
+  --gk-warn: #c7801c;
+  --gk-shadow-popover: 0 18px 48px rgba(44, 45, 39, 0.14);
+  --gk-skeleton: rgba(44, 45, 39, 0.07);
+  --gk-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2374756d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* "Follow System" leaves no attribute set, so the OS preference decides here
+   rather than in JavaScript that would drift when the OS setting changes. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']):not([data-theme='light']) {
+    color-scheme: light;
+    /* The OpenAgents website's palette: warm paper, ink, sage greys and hairlines
+       the colour of the page edge. Primary actions are ink, as on the site. */
+    --gk-bg-app: #f3f2ec;
+    --gk-bg-transcript: #faf9f6;
+    --gk-bg-surface: #fffefa;
+    --gk-bg-raised: #fffefb;
+    --gk-bg-input: #fffefa;
+    --gk-bg-hover: rgba(44, 45, 39, 0.05);
+    --gk-bg-selected: #ecebe4;
+    --gk-bg-bubble-assistant: #f2f1ea;
+    --gk-bg-bubble-user: #eceee4;
+    --gk-bg-overlay: rgba(44, 45, 39, 0.28);
+    --gk-line: #e4e3dc;
+    --gk-line-strong: #d2d1c7;
+    --gk-text: #2c2d27;
+    --gk-text-secondary: #55574d;
+    --gk-text-muted: #74756d;
+    --gk-text-inverse: #faf9f6;
+    --gk-accent: #2c2d27;
+    --gk-focus: #b64b28;
+    --gk-danger: #d24a3c;
+    --gk-ok: #4c7a3f;
+    --gk-warn: #c7801c;
+    --gk-shadow-popover: 0 18px 48px rgba(44, 45, 39, 0.14);
+    --gk-skeleton: rgba(44, 45, 39, 0.07);
+    --gk-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2374756d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+}
+
+/* ------------------------------------------------------------------ shell -- */
+
+.grok-workspace-container {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  overflow: hidden;
+  background: var(--gk-bg-app);
+  color: var(--gk-text);
+  font-family: var(--gk-font-sans);
+  font-size: var(--gk-font-size-base);
+  line-height: var(--gk-line-height-base);
+}
+
+.grok-workspace-window {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+}
+
+/* A thin inset scrollbar. The default chrome bar is 15px and opaque, which
+   these dense rows cannot spare. */
+.grok-workspace-container *,
+.grok-modal-overlay *,
+.grok-popover * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gk-line-strong) transparent;
+}
+.grok-workspace-container *::-webkit-scrollbar,
+.grok-modal-overlay *::-webkit-scrollbar,
+.grok-popover *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background-color: transparent;
+}
+.grok-workspace-container *::-webkit-scrollbar-thumb,
+.grok-modal-overlay *::-webkit-scrollbar-thumb,
+.grok-popover *::-webkit-scrollbar-thumb {
+  background-color: var(--gk-line-strong);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--gk-radius-full);
+}
+
+.grok-workspace-container button,
+.grok-modal-overlay button,
+.grok-popover button {
+  font-family: inherit;
+}
+
+.grok-workspace-container :focus-visible,
+.grok-modal-overlay :focus-visible,
+.grok-popover :focus-visible {
+  /* Blue, not the monochrome accent: focus is meaning, and Vercel keeps
+     colour for meaning. The offset is what stops it disappearing into the
+     edge of a fully-rounded control. */
+  outline: 2px solid var(--gk-focus);
+  outline-offset: 2px;
+}
+
+/* Geist Mono reaches the code surfaces. Without this they fall to the UA's
+   default monospace, which on Windows is Courier New - a serif face, at a
+   different optical size, in the middle of a sans interface. */
+.grok-workspace-container code,
+.grok-workspace-container pre,
+.grok-modal-overlay code,
+.grok-modal-overlay pre,
+.grok-popover code,
+.grok-popover pre {
+  font-family: var(--gk-font-mono);
+  font-size: 0.92em;
+  font-feature-settings: 'ss01';
+}
+
+/* --------------------------------------------------- portalled components --
+   Base UI renders popups - select lists, menus, dialogs, tooltips - into a
+   container at the end of <body>, outside `.grok-workspace-container`. That is
+   correct behaviour: it is what stops a dropdown being clipped by a scrolling
+   pane. It also means they inherit from <body>, and <body> in this stylesheet
+   still carries the ORIGINAL galaxy view's `font: 13px/1.55 var(--mono)` - so
+   every Coss dropdown rendered its options in a monospace face while the rest
+   of the interface was in Geist.
+
+   Fixed here rather than by changing the body rule, because that rule is what
+   the galaxy view is set in and this is not the change that should reformat it.
+   -------------------------------------------------------------------------- */
+
+[data-slot$='-positioner'],
+[data-slot$='-popup'],
+[data-slot='popover-positioner'],
+[data-slot='menu-positioner'],
+[data-slot='tooltip-positioner'],
+[data-slot='dialog-backdrop'],
+[data-slot='dialog-popup'] {
+  font-family: var(--gk-font-sans);
+  font-size: var(--gk-font-size-base);
+  line-height: var(--gk-line-height-base);
+}
+
+/* ------------------------------------------------- vendored-component fixes --
+   Workarounds for upstream defects in vendored code, kept HERE so the vendored
+   files stay byte-identical to their registry and can be updated with a copy
+   rather than a merge.
+
+   1. Coss's menu and context-menu popups carry
+      `not-[class*='w-']:min-w-32` - "a minimum width unless the caller set a
+      width". Tailwind 4.3.3 compiles that variant to `:not(:is())` with an
+      EMPTY `:is()`, which is invalid CSS, so the browser drops the whole rule
+      and the popups collapse to their content width. Verified in the generated
+      stylesheet, not guessed: the selector is emitted broken before
+      minification, so it is Tailwind's output rather than the minifier.
+
+      Matching the class token directly restores the intended width. Remove
+      this when Tailwind fixes the variant.
+   ---------------------------------------------------------------------------- */
+
+[class~="not-[class*='w-']:min-w-32"] {
+  min-width: 8rem;
+}
+
+/* -------------------------------------------------------------- tooltip ---
+   Positioned from the trigger's measured rectangle and portalled to the body,
+   so `transform` here is what centres it rather than a layout the parent would
+   have to cooperate with.
+   -------------------------------------------------------------------------- */
+
+/* The tooltip is Coss's now, on Base UI (see ui/TooltipLayer.tsx), so the
+   border, background, shadow, radius, colour and the fade all come from the
+   component.
+
+   MOST OF THIS RULE HAD TO GO, and not because it was redundant: `position:
+   fixed` and `transform: translate(-50%, -100%)` were how the hand-written
+   version placed itself, and left in place they would have overridden the
+   positioner and pinned every tooltip to the wrong spot. What is left is the
+   two things Base UI has no opinion about - how wide the text may run before
+   it wraps, and that the tooltip must not be hoverable. */
+[data-slot="tooltip-positioner"] {
+  z-index: 1000 !important;
+}
+
+.grok-tooltip {
+  max-width: 260px;
+  pointer-events: none;
+  z-index: 1000 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grok-tooltip { animation: none; }
+}
+
+/* ------------------------------------------------------- form controls ----
+   Native form controls are the last obvious "this is a web page" tell.
+
+   A `<select>` without `appearance: none` is drawn by the OPERATING SYSTEM,
+   not by this stylesheet: Windows paints its own dropdown arrow, its own
+   border radius and its own font inside whatever box we gave it. It sits in a
+   row of Geist labels looking like it was pasted in from another decade. The
+   same is true of `<input type=checkbox>`, whose tick is a system glyph.
+
+   The technique below - `appearance: none`, then rebuild the control out of
+   the box's own background, border and a pseudo-element - is the one the
+   Uiverse community elements are built on (uiverse.io, MIT). None of their
+   code is copied: their elements are decorative by design, all neon and
+   gradients, and this palette is not. What carries over is the method.
+   -------------------------------------------------------------------------- */
+
+.grok-workspace-container select,
+.grok-modal-overlay select,
+.grok-popover select {
+  appearance: none;
+  -webkit-appearance: none;
+  /* Room for the chevron, which is a background image and does not reserve
+     space of its own. */
+  padding-right: var(--gk-space-6);
+  background-image: var(--gk-chevron);
+  background-repeat: no-repeat;
+  background-position: right var(--gk-space-2) center;
+  background-size: 14px;
+  cursor: default;
+}
+/* The option list is still drawn by the OS. Giving it the surface colour is
+   the most that can be done without replacing <select> with a listbox, and
+   without it the open menu flashes white on a dark theme. */
+.grok-workspace-container select option,
+.grok-modal-overlay select option,
+.grok-popover select option {
+  background: var(--gk-bg-raised);
+  color: var(--gk-text);
+}
+
+/* --- checkbox ---
+   Rebuilt from the box itself. The tick is two borders on a rotated
+   pseudo-element rather than a glyph, so it scales with the control and needs
+   no font to be present. */
+.grok-workspace-container input[type='checkbox'],
+.grok-modal-overlay input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  border: 1px solid var(--gk-line-strong);
+  border-radius: var(--gk-radius-xs);
+  background: var(--gk-bg-input);
+  cursor: default;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.grok-workspace-container input[type='checkbox']:hover:not(:disabled),
+.grok-modal-overlay input[type='checkbox']:hover:not(:disabled) {
+  border-color: var(--gk-text-muted);
+}
+.grok-workspace-container input[type='checkbox']:checked,
+.grok-modal-overlay input[type='checkbox']:checked {
+  background: var(--gk-focus);
+  border-color: var(--gk-focus);
+}
+.grok-workspace-container input[type='checkbox']:checked::after,
+.grok-modal-overlay input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  /* Optically centred, not geometrically: a tick's mass sits low and left. */
+  left: 4.5px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.grok-workspace-container input[type='checkbox']:disabled,
+.grok-modal-overlay input[type='checkbox']:disabled {
+  opacity: 0.45;
+}
+
+/* --- range ---
+   Track and thumb have to be styled per engine; there is no shared selector.
+   `accent-color` alone only recolours the OS control, leaving its shape. */
+.grok-workspace-container input[type='range'],
+.grok-modal-overlay input[type='range'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  background: none;
+}
+.grok-workspace-container input[type='range']::-webkit-slider-runnable-track,
+.grok-modal-overlay input[type='range']::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-line-strong);
+}
+.grok-workspace-container input[type='range']::-webkit-slider-thumb,
+.grok-modal-overlay input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  /* Half the thumb above the track, so it rides on it rather than below it. */
+  margin-top: -5px;
+  border: 0;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-text);
+}
+.grok-workspace-container input[type='range']::-moz-range-track,
+.grok-modal-overlay input[type='range']::-moz-range-track {
+  height: 3px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-line-strong);
+}
+.grok-workspace-container input[type='range']::-moz-range-thumb,
+.grok-modal-overlay input[type='range']::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border: 0;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-text);
+}
+
+/* --- number ---
+   The spinner arrows are an OS control inside our box, and every value here is
+   typed rather than nudged. */
+.grok-workspace-container input[type='number'],
+.grok-modal-overlay input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.grok-workspace-container input[type='number']::-webkit-outer-spin-button,
+.grok-workspace-container input[type='number']::-webkit-inner-spin-button,
+.grok-modal-overlay input[type='number']::-webkit-outer-spin-button,
+.grok-modal-overlay input[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* --- colour ---
+   The swatch keeps the OS picker on click, which is correct - it is a system
+   affordance people know - but the button that opens it is ours. */
+.grok-workspace-container input[type='color'],
+.grok-modal-overlay input[type='color'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 28px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--gk-line-strong);
+  border-radius: var(--gk-radius-sm);
+  background: none;
+  cursor: default;
+}
+.grok-workspace-container input[type='color']::-webkit-color-swatch-wrapper,
+.grok-modal-overlay input[type='color']::-webkit-color-swatch-wrapper { padding: 2px; }
+.grok-workspace-container input[type='color']::-webkit-color-swatch,
+.grok-modal-overlay input[type='color']::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grok-workspace-container input[type='checkbox'],
+  .grok-modal-overlay input[type='checkbox'] { transition: none; }
+}
+
+/* ---------------------------------------------------------------- icons ----
+   Lucide renders an inline <svg> sized in px. Two things it needs from the
+   layout, and both are the kind of bug that only shows up on a narrow window:
+
+   `flex-shrink: 0` because an icon in a flex row is not text - without it a
+   long label squeezes the icon into an ellipse.
+
+   `display: block` because an inline SVG sits on the text baseline and carries
+   the line-box's descender gap with it, which pushes it a pixel or two low
+   next to a label. Blocks have no baseline to sit on.
+   -------------------------------------------------------------------------- */
+
+.grok-workspace-container svg.lucide,
+.grok-modal-overlay svg.lucide,
+.grok-popover svg.lucide,
+.oh-titlebar svg.lucide,
+.oh-daemon-panel svg.lucide {
+  display: block;
+  flex: 0 0 auto;
+  /* Inherits the colour of whatever it sits in, so a hovered row lights the
+     icon with the label rather than leaving it behind. */
+  color: currentColor;
+}
+
+/* --- icon gestures ---
+   Each icon plays a small movement when the CONTROL holding it is hovered, not
+   when the icon itself is. That distinction is the whole design: the icon is
+   16px and the button around it is the target, so a gesture keyed to the glyph
+   would only fire if the pointer happened to cross the glyph exactly.
+
+   The movement is chosen to match the meaning - a gear turns, a send arrow
+   flies, a trash can hesitates - so it reads as confirmation of what the
+   control does rather than as decoration. `data-motion` is set by the Icon
+   component from one map; see ui/icons.tsx.
+
+   The list of triggers is explicit rather than `*:hover` because only these
+   are controls. Hovering a paragraph that happens to contain an icon should
+   not set it moving. */
+[data-motion] {
+  transition:
+    transform 220ms cubic-bezier(0.2, 0, 0.2, 1),
+    opacity 220ms ease;
+  /* Rotation and scale need a centre; the default is already 50% 50% but
+     stating it stops a future `transform-box` change from moving it. */
+  transform-origin: 50% 50%;
+}
+
+button:hover:not(:disabled) [data-motion='turn'],
+[role='menuitem']:hover [data-motion='turn'],
+a:hover [data-motion='turn'] { transform: rotate(90deg); }
+
+button:hover:not(:disabled) [data-motion='spin'],
+[role='menuitem']:hover [data-motion='spin'] { transform: rotate(180deg); }
+
+button:hover:not(:disabled) [data-motion='spin-back'],
+[role='menuitem']:hover [data-motion='spin-back'] { transform: rotate(-180deg); }
+
+button:hover:not(:disabled) [data-motion='quarter'],
+[role='menuitem']:hover [data-motion='quarter'] { transform: rotate(90deg); }
+
+button:hover:not(:disabled) [data-motion='fly'],
+[role='menuitem']:hover [data-motion='fly'],
+a:hover [data-motion='fly'] { transform: translate(2px, -2px); }
+
+button:hover:not(:disabled) [data-motion='lift'],
+[role='menuitem']:hover [data-motion='lift'] { transform: translateY(-2px); }
+
+button:hover:not(:disabled) [data-motion='nudge-down'],
+[role='menuitem']:hover [data-motion='nudge-down'] { transform: translateY(2px); }
+
+button:hover:not(:disabled) [data-motion='nudge-left'],
+[role='menuitem']:hover [data-motion='nudge-left'] { transform: translateX(-2px); }
+
+button:hover:not(:disabled) [data-motion='nudge-right'],
+[role='menuitem']:hover [data-motion='nudge-right'] { transform: translateX(2px); }
+
+button:hover:not(:disabled) [data-motion='grow'],
+[role='menuitem']:hover [data-motion='grow'] { transform: scale(1.12); }
+
+button:hover:not(:disabled) [data-motion='shift'],
+[role='menuitem']:hover [data-motion='shift'] { transform: translate(-1px, -1px); }
+
+button:hover:not(:disabled) [data-motion='tilt'],
+[role='menuitem']:hover [data-motion='tilt'] { transform: rotate(-18deg); }
+
+/* Keyframed, because these are not a single destination. */
+button:hover:not(:disabled) [data-motion='bounce'],
+[role='menuitem']:hover [data-motion='bounce'] {
+  animation: grok-icon-bounce 420ms ease-in-out;
+}
+@keyframes grok-icon-bounce {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(1.22) rotate(-8deg); }
+  70% { transform: scale(0.96) rotate(4deg); }
+}
+
+/* The destructive one. A short hesitation rather than a flourish: it should
+   read as "are you sure", not as fun. */
+button:hover:not(:disabled) [data-motion='shake'],
+[role='menuitem']:hover [data-motion='shake'] {
+  animation: grok-icon-shake 380ms ease-in-out;
+}
+@keyframes grok-icon-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1.5px) rotate(-6deg); }
+  75% { transform: translateX(1.5px) rotate(6deg); }
+}
+
+/* Dictation is the one gesture that repeats, because the state it describes -
+   listening - also continues. */
+button:hover:not(:disabled) [data-motion='pulse'] {
+  animation: grok-icon-pulse 1.1s ease-in-out infinite;
+}
+@keyframes grok-icon-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.14); opacity: 0.75; }
+}
+
+/* The eyes. `preview` and `hide` are both an eye, and an eye that blinks says
+   "look" more clearly than one that grows. Squashed vertically rather than
+   faded, because a lid closes - and it returns to open, so the icon does not
+   sit there shut while the pointer rests on the control. */
+button:hover:not(:disabled) [data-motion='blink'],
+[role='menuitem']:hover [data-motion='blink'] {
+  animation: grok-icon-blink 460ms ease-in-out;
+}
+@keyframes grok-icon-blink {
+  0%, 100% { transform: scaleY(1); }
+  45% { transform: scaleY(0.12); }
+  70% { transform: scaleY(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Every gesture off, including the repeating one. The icons still change
+     colour on hover, which is the part that carries the state. */
+  [data-motion] {
+    transition: none;
+    animation: none !important;
+  }
+  button:hover:not(:disabled) [data-motion],
+  [role='menuitem']:hover [data-motion],
+  a:hover [data-motion] {
+    transform: none;
+  }
+}
+
+/* The menu icon column. A fixed width keeps every label in a menu aligned
+   whether or not its row has an icon. */
+.grok-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  flex: 0 0 16px;
+  color: var(--gk-text-muted);
+}
+
+.grok-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- sidebar -- */
+
+.grok-sidebar {
+  width: var(--gk-sidebar-width);
+  min-width: var(--gk-sidebar-width);
+  flex: 0 0 var(--gk-sidebar-width);
+  background: var(--gk-bg-app);
+  border-right: 1px solid var(--gk-line);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+.grok-sidebar-header {
+  height: var(--gk-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--gk-space-3);
+}
+
+.grok-sidebar-heading {
+  font-size: var(--gk-font-size-sm);
+  font-weight: var(--gk-weight-semibold);
+  color: var(--gk-text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.grok-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--gk-space-1);
+  border: 0;
+  /* A circle. An icon with no label has no shape of its own to read as a
+     control, so the container has to supply one. */
+  border-radius: var(--gk-radius-full);
+  background: transparent;
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-lg);
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.grok-icon-btn:hover:not(:disabled) {
+  background: var(--gk-bg-hover);
+  color: var(--gk-text);
+}
+.grok-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.grok-add-agent-btn { font-size: 18px; }
+
+.grok-search-box {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  margin: 0 var(--gk-space-3) var(--gk-space-2);
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-input);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-base);
+  cursor: pointer;
+  text-align: left;
+}
+.grok-search-box:hover { border-color: var(--gk-line-strong); }
+.grok-search-icon { font-size: var(--gk-font-size-lg); }
+
+.grok-computer-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gk-space-2);
+  margin: 0 var(--gk-space-3) var(--gk-space-2);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-computer-banner button {
+  border: 0;
+  background: transparent;
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-xs);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.grok-agent-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--gk-space-2) var(--gk-space-2);
+}
+
+.grok-agent-section-title {
+  padding: var(--gk-space-3) var(--gk-space-2) var(--gk-space-1);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  font-weight: var(--gk-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.grok-agent-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  padding: var(--gk-space-2);
+  border: 0;
+  border-radius: var(--gk-radius-lg);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grok-agent-row { transition: background 120ms ease; }
+.grok-agent-row:hover { background: var(--gk-bg-hover); }
+.grok-agent-row.active { background: var(--gk-bg-selected); }
+
+.grok-agent-avatar-wrap { flex: 0 0 auto; display: flex; }
+
+.grok-draft-avatar {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-raised);
+  color: var(--gk-text-secondary);
+  font-size: 17px;
+}
+
+.grok-agent-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.grok-agent-topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gk-space-2);
+}
+
+.grok-agent-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--gk-font-size-base);
+  font-weight: var(--gk-weight-semibold);
+  color: var(--gk-text);
+}
+.grok-pin-mark { margin-right: var(--gk-space-1); color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+
+.grok-agent-time { flex: 0 0 auto; color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+
+.grok-agent-subline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gk-space-2);
+}
+
+.grok-agent-snippet {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+}
+
+.grok-unread-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-accent);
+}
+
+.grok-sidebar-empty,
+.grok-sidebar-note {
+  padding: var(--gk-space-4) var(--gk-space-2);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+  line-height: var(--gk-line-height-lg);
+}
+.grok-sidebar-note { padding-top: var(--gk-space-2); font-size: var(--gk-font-size-xs); }
+
+.grok-sidebar-footer {
+  border-top: 1px solid var(--gk-line);
+  padding: var(--gk-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-1);
+}
+
+.grok-footer-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  width: 100%;
+  padding: var(--gk-space-2);
+  border: 0;
+  border-radius: var(--gk-radius-lg);
+  background: transparent;
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-base);
+  cursor: pointer;
+}
+.grok-footer-btn:hover { background: var(--gk-bg-hover); color: var(--gk-text); }
+
+.grok-user-profile { display: flex; align-items: center; gap: var(--gk-space-2); }
+.grok-user-button {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  padding: var(--gk-space-1-5) var(--gk-space-2);
+  border: 0;
+  border-radius: var(--gk-radius-lg);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grok-user-button:hover { background: var(--gk-bg-hover); }
+.grok-user-avatar {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--gk-radius-full);
+  background: #3f6fd8;
+  color: #fff;
+  font-size: var(--gk-font-size-sm);
+  font-weight: var(--gk-weight-semibold);
+}
+.grok-user-info { min-width: 0; display: flex; flex-direction: column; }
+.grok-user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-font-size-base); }
+.grok-user-status {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-1);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-connection-dot { width: 6px; height: 6px; border-radius: var(--gk-radius-full); background: var(--gk-text-muted); }
+.grok-connection-dot.open { background: var(--gk-ok); }
+.grok-connection-dot.connecting { background: var(--gk-warn); }
+.grok-connection-dot.closed { background: var(--gk-danger); }
+
+.grok-update-badge {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-raised);
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-xs);
+}
+
+/* ----------------------------------------------------------- conversation -- */
+
+.grok-chat-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--gk-bg-transcript);
+}
+
+.grok-chat-header {
+  height: var(--gk-header-height);
+  flex: 0 0 var(--gk-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gk-space-2);
+  padding: 0 var(--gk-space-3);
+}
+
+.grok-chat-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  min-width: 0;
+  padding: var(--gk-space-1) var(--gk-space-1-5);
+  border: 0;
+  border-radius: var(--gk-radius-base);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.grok-chat-identity:hover { background: var(--gk-bg-hover); }
+.grok-chat-title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--gk-font-size-lg);
+  font-weight: var(--gk-weight-semibold);
+}
+.grok-chat-label-chip {
+  padding: 1px var(--gk-space-1-5);
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-raised);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-chat-header-actions { display: flex; align-items: center; gap: var(--gk-space-1); }
+
+.grok-draft-header { gap: var(--gk-space-1-5); }
+.grok-draft-to { color: var(--gk-text-muted); font-size: var(--gk-font-size-base); }
+.grok-recipient-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+  padding: 2px var(--gk-space-1-5) 2px 2px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-raised);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-recipient-chip button { border: 0; background: transparent; color: var(--gk-text-muted); cursor: pointer; }
+.grok-recipient-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gk-text);
+  font: inherit;
+  outline: none;
+}
+.grok-recipient-option { gap: var(--gk-space-2-5); }
+.grok-menu-hint { margin-left: auto; color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+
+.grok-messages-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--gk-space-4) var(--gk-space-4) var(--gk-space-2);
+}
+.grok-draft-body { display: grid; place-items: center; }
+.grok-draft-hint,
+.grok-empty-conversation {
+  max-width: 460px;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-base);
+  line-height: var(--gk-line-height-lg);
+  text-align: center;
+}
+.grok-empty-conversation { flex: 1; display: grid; place-items: center; margin: 0 auto; }
+
+.grok-chat-content { display: flex; flex-direction: column; gap: var(--gk-space-1); }
+
+.grok-timestamp-divider { display: flex; justify-content: center; padding: var(--gk-space-4) 0 var(--gk-space-2); }
+.grok-timestamp-divider span { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+
+.grok-message-row { display: flex; padding: 1px 0; }
+.grok-message-row.user-row { justify-content: flex-end; }
+.grok-message-row.assistant-row { justify-content: flex-start; }
+
+.grok-message-content {
+  position: relative;
+  max-width: min(640px, 78%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-1);
+}
+
+.grok-bubble {
+  padding: var(--gk-space-2-5) var(--gk-space-3);
+  border-radius: var(--gk-radius-xl);
+  font-size: var(--gk-font-size-base);
+  line-height: var(--gk-line-height-lg);
+  /* `pre-wrap` is for the user's own text, which is shown exactly as typed.
+     Rendered Markdown brings its own block structure, and pre-wrap on top of
+     it turns every source newline into a second one. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* DESCENDANT, not child. This was `:has(> .grok-md)` and broke the moment the
+   rendered body gained a wrapper - the fold - which put a level between the
+   bubble and the Markdown. `pre-wrap` came back, and every source newline in
+   the model's reply rendered as a blank line again. The relationship that
+   matters is "this bubble contains rendered Markdown somewhere", not "exactly
+   one level down". */
+.grok-bubble:has(.grok-md) { white-space: normal; }
+/* The assistant bubble is the one that has to hold long text, so it gets the
+   quieter fill - and a hairline, because at that size a fill this subtle stops
+   reading as an edge and the block dissolves into the transcript. The user
+   bubble is short and can carry a heavier fill instead. */
+.grok-bubble-assistant {
+  background: var(--gk-bg-bubble-assistant);
+  color: var(--gk-text);
+  border: 1px solid var(--gk-line);
+}
+.grok-bubble-user { background: var(--gk-bg-bubble-user); color: var(--gk-text); }
+
+/* ---------------------------------------------------------------- markdown --
+   Typeset model output.
+
+   The whole job here is vertical rhythm. Markdown produces a stack of blocks
+   of different kinds - paragraphs, lists, code, tables, quotes - and if each
+   one carries its own top AND bottom margin they compound at every boundary
+   and the message breathes unevenly. So: no top margin on anything, a bottom
+   margin on everything, and the first and last child collapsed flush to the
+   bubble's own padding.
+   -------------------------------------------------------------------------- */
+
+.grok-md > *:first-child { margin-top: 0; }
+.grok-md > *:last-child { margin-bottom: 0; }
+.grok-md p,
+.grok-md ul,
+.grok-md ol,
+.grok-md blockquote,
+.grok-md pre,
+.grok-md .grok-md-tablewrap {
+  margin: 0 0 var(--gk-space-3);
+}
+
+/* Headings inside a chat bubble are section markers, not page titles: the size
+   jump that works in a document is shouting at this width. Weight and colour
+   carry the hierarchy instead, with only the top level taking any extra size. */
+.grok-md h1,
+.grok-md h2,
+.grok-md h3,
+.grok-md h4,
+.grok-md h5,
+.grok-md h6 {
+  margin: var(--gk-space-4) 0 var(--gk-space-2);
+  font-weight: var(--gk-weight-semibold);
+  line-height: var(--gk-line-height-lg);
+  color: var(--gk-text);
+}
+.grok-md h1 { font-size: calc(var(--gk-font-size-lg) + 2px); }
+.grok-md h2 { font-size: var(--gk-font-size-lg); }
+.grok-md h3,
+.grok-md h4,
+.grok-md h5,
+.grok-md h6 { font-size: var(--gk-font-size-base); }
+
+.grok-md ul,
+.grok-md ol { padding-left: var(--gk-space-5); }
+.grok-md li { margin: 0 0 var(--gk-space-1); }
+.grok-md li > ul,
+.grok-md li > ol { margin: var(--gk-space-1) 0 0; }
+.grok-md li::marker { color: var(--gk-text-muted); }
+
+.grok-md a {
+  color: var(--gk-focus);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.grok-md strong { font-weight: var(--gk-weight-semibold); color: var(--gk-text); }
+.grok-md em { font-style: italic; }
+.grok-md del { color: var(--gk-text-muted); }
+
+/* Inline code is a chip, not a block: a border here would fight every line it
+   sits in, so the fill does the separating on its own. */
+.grok-md :not(pre) > code {
+  padding: 1px var(--gk-space-1);
+  border-radius: var(--gk-radius-xs);
+  background: var(--gk-bg-hover);
+  color: var(--gk-text);
+}
+
+/* The fence, with its language and its copy button. The header is part of the
+   same box as the code, so a horizontally scrolling block scrolls UNDER a
+   header that stays put rather than dragging the label out of view. */
+.grok-code {
+  margin: 0 0 var(--gk-space-3);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-transcript);
+  overflow: hidden;
+}
+.grok-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-1) var(--gk-space-1) var(--gk-space-1) var(--gk-space-3);
+  border-bottom: 1px solid var(--gk-line);
+  background: var(--gk-bg-hover);
+}
+.grok-code-lang {
+  color: var(--gk-text-muted);
+  font-family: var(--gk-font-mono);
+  font-size: var(--gk-font-size-xs);
+  /* A language name is a token, not prose. */
+  letter-spacing: 0.02em;
+}
+.grok-code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+  padding: var(--gk-space-1) var(--gk-space-2);
+  border: 0;
+  border-radius: var(--gk-radius-sm);
+  background: transparent;
+  color: var(--gk-text-muted);
+  font: inherit;
+  font-size: var(--gk-font-size-xs);
+  cursor: default;
+  transition: background 120ms ease, color 120ms ease;
+}
+.grok-code-copy:hover {
+  background: var(--gk-bg-hover);
+  color: var(--gk-text);
+}
+.grok-md .grok-code pre {
+  margin: 0;
+  padding: var(--gk-space-3);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow-x: auto;
+}
+
+.grok-md pre {
+  padding: var(--gk-space-3);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-transcript);
+  overflow-x: auto;
+}
+
+/* A pill floating over the end of the transcript, not inside its scroll flow -
+   inside, it would scroll away with the content it is offering to reach. */
+.grok-jump-anchor {
+  position: sticky;
+  bottom: var(--gk-space-3);
+  /* No height, so the pill adds nothing to the scroll length it sits over. */
+  height: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 3;
+}
+.grok-jump-latest {
+  transform: translateY(-100%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+  padding: var(--gk-space-1-5) var(--gk-space-3);
+  border: 1px solid var(--gk-line-strong);
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-raised);
+  backdrop-filter: blur(20px) saturate(1.5);
+  box-shadow: var(--gk-shadow-popover);
+  color: var(--gk-text);
+  font: inherit;
+  font-size: var(--gk-font-size-xs);
+  font-weight: var(--gk-weight-medium);
+  cursor: default;
+}
+.grok-jump-latest:hover { background: var(--gk-bg-hover); }
+
+/* ----------------------------------------------------------- collapsible --
+   A folded block fades out rather than ending in a hard cut, because a hard
+   cut mid-sentence looks like a rendering bug. The gradient says "there is
+   more" without needing the button to be read first.
+   -------------------------------------------------------------------------- */
+
+.grok-collapsible { position: relative; }
+.grok-collapsible-body { overflow: hidden; }
+.grok-collapsible.folded .grok-collapsible-body {
+  /* The mask, not an overlaid gradient: an overlay has to know the colour it
+     is fading into, and this block sits on two different bubble fills. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+}
+.grok-collapsible-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+  margin-top: var(--gk-space-2);
+  padding: var(--gk-space-1) var(--gk-space-2-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-surface);
+  color: var(--gk-text-secondary);
+  font: inherit;
+  font-size: var(--gk-font-size-xs);
+  cursor: default;
+  transition: background 120ms ease, color 120ms ease;
+}
+.grok-collapsible-toggle:hover {
+  background: var(--gk-bg-hover);
+  color: var(--gk-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grok-code-copy,
+  .grok-collapsible-toggle { transition: none; }
+}
+.grok-md pre code {
+  padding: 0;
+  background: none;
+  white-space: pre;
+}
+
+.grok-md blockquote {
+  padding-left: var(--gk-space-3);
+  border-left: 2px solid var(--gk-line-strong);
+  color: var(--gk-text-secondary);
+}
+
+.grok-md hr {
+  margin: var(--gk-space-4) 0;
+  border: 0;
+  border-top: 1px solid var(--gk-line);
+}
+
+/* The scroll container from MessageBody. A wide table scrolls itself rather
+   than widening the transcript and taking every other message with it. */
+.grok-md-tablewrap { overflow-x: auto; }
+.grok-md table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: var(--gk-font-size-sm);
+}
+.grok-md th,
+.grok-md td {
+  padding: var(--gk-space-1-5) var(--gk-space-2-5);
+  border: 1px solid var(--gk-line);
+  text-align: left;
+  vertical-align: top;
+}
+.grok-md th {
+  background: var(--gk-bg-hover);
+  font-weight: var(--gk-weight-semibold);
+  white-space: nowrap;
+}
+
+/* Task lists lose the bullet, because the checkbox is the marker. */
+.grok-md li:has(> input[type='checkbox']) { list-style: none; margin-left: calc(var(--gk-space-5) * -1); }
+.grok-md li > input[type='checkbox'] { margin-right: var(--gk-space-2); accent-color: var(--gk-focus); }
+
+/* ------------------------------------------------------------ usage chart --
+   A fourteen-day column chart, scaled to its own busiest day rather than to a
+   fixed ceiling: the question it answers is "which days were heavy", and an
+   absolute scale would flatten a quiet fortnight into nothing.
+   -------------------------------------------------------------------------- */
+
+/* Recharts draws into an SVG that fills this box. The margin is here rather
+   than on the chart's own margin prop so the tooltip, which escapes the SVG,
+   is not clipped by it. */
+.grok-chart {
+  margin: var(--gk-space-2) 0 var(--gk-space-1);
+}
+/* Recharts sets its own focus outline on every bar; the chart is one figure,
+   not thirty controls. */
+.grok-chart .recharts-wrapper:focus,
+.grok-chart .recharts-surface:focus {
+  outline: none;
+}
+
+.grok-chart-tooltip {
+  min-width: 168px;
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 1px solid var(--gk-line-strong);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-raised);
+  box-shadow: var(--gk-shadow-popover);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+.grok-chart-tooltip-head {
+  margin-bottom: var(--gk-space-1-5);
+  color: var(--gk-text);
+  font-weight: var(--gk-weight-semibold);
+}
+.grok-chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+  color: var(--gk-text-secondary);
+}
+.grok-chart-tooltip-label { flex: 1; }
+.grok-chart-tooltip-value {
+  color: var(--gk-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.grok-chart-swatch {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 2px;
+}
+
+.grok-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gk-space-3);
+  margin-bottom: var(--gk-space-3);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+}
+
+/* The secondary breakdown under a headline figure. */
+.grok-usage-split {
+  display: block;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+
+/* A row whose value is a paragraph rather than a figure. */
+.grok-settings-row-stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gk-space-1);
+}
+.grok-settings-row-stacked .grok-settings-note { margin: 0; }
+
+.grok-message-actions {
+  position: absolute;
+  top: 2px;
+  display: none;
+  gap: var(--gk-space-0-5);
+  padding: var(--gk-space-0-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-raised);
+  box-shadow: var(--gk-shadow-popover);
+}
+.assistant-row .grok-message-actions { left: calc(100% + var(--gk-space-2)); }
+.user-row .grok-message-actions { right: calc(100% + var(--gk-space-2)); }
+.grok-message-row:hover .grok-message-actions,
+.grok-message-content:focus-within .grok-message-actions { display: flex; }
+.grok-message-actions button {
+  min-width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--gk-radius-sm);
+  background: transparent;
+  color: var(--gk-text-secondary);
+  cursor: pointer;
+}
+.grok-message-actions button:hover { background: var(--gk-bg-hover); color: var(--gk-text); }
+
+.grok-reaction-row { display: flex; flex-wrap: wrap; gap: var(--gk-space-1); }
+.user-row .grok-reaction-row { justify-content: flex-end; }
+.grok-reaction-chip {
+  padding: 1px var(--gk-space-1-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-raised);
+  font-size: var(--gk-font-size-sm);
+  cursor: pointer;
+}
+
+.grok-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: 8vh var(--gk-space-4) var(--gk-space-6);
+  text-align: center;
+}
+.grok-welcome h1 { margin: var(--gk-space-2) 0 0; font-size: 20px; font-weight: var(--gk-weight-semibold); }
+.grok-welcome p {
+  margin: 0;
+  max-width: 460px;
+  color: var(--gk-text-muted);
+  line-height: var(--gk-line-height-lg);
+  /* A bot's description IS its system prompt, which can be long. Clamp the
+     welcome screen rather than letting one bot's prompt fill the transcript;
+     the full text stays editable in settings. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.grok-chat-state,
+.grok-empty-note {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-3) 0;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+}
+
+/* The busy indicator is Coss's Spinner now - a lucide glyph with Tailwind's
+   `animate-spin` - so all that is left here is the size. A 24px default icon
+   next to 12px text is the only thing the component got wrong for this app.
+   The old rule drew a CSS ring by hand; it is gone rather than left behind to
+   rot, and `grok-spin` with it. */
+.grok-spinner-icon {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  color: var(--gk-text-secondary);
+}
+
+.grok-thinking-message {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-2) 0;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-thinking-message i {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--gk-radius-full);
+  background: currentColor;
+  animation: grok-bounce 1.2s infinite ease-in-out;
+}
+.grok-thinking-message i:nth-of-type(2) { animation-delay: 0.15s; }
+.grok-thinking-message i:nth-of-type(3) { animation-delay: 0.3s; }
+@keyframes grok-bounce {
+  0%, 60%, 100% { opacity: 0.3; }
+  30% { opacity: 1; }
+}
+
+.grok-chat-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-1);
+  margin: var(--gk-space-2) 0;
+  padding: var(--gk-space-2-5) var(--gk-space-3);
+  border: 1px solid var(--gk-danger);
+  border-radius: var(--gk-radius-lg);
+  background: color-mix(in srgb, var(--gk-danger) 12%, transparent);
+  font-size: var(--gk-font-size-sm);
+}
+
+/* ---------------------------------------------------------------- composer -- */
+
+.grok-chat-footer { flex: 0 0 auto; padding: var(--gk-space-2) var(--gk-space-4) var(--gk-space-4); }
+
+.grok-input-capsule {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-1);
+  padding: var(--gk-space-1-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-4xl);
+  background: var(--gk-bg-raised);
+}
+.grok-input-capsule.replying { border-radius: var(--gk-radius-xl); }
+.grok-input-capsule:focus-within { border-color: var(--gk-line-strong); }
+
+.grok-capsule-row { display: flex; align-items: flex-end; gap: var(--gk-space-1-5); }
+
+.grok-capsule-input {
+  flex: 1;
+  min-width: 0;
+  max-height: 140px;
+  padding: var(--gk-space-2) var(--gk-space-1);
+  border: 0;
+  background: transparent;
+  color: var(--gk-text);
+  font: inherit;
+  resize: none;
+  outline: none;
+}
+.grok-capsule-input::placeholder { color: var(--gk-text-muted); }
+
+.grok-capsule-btn {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-hover);
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-lg);
+  cursor: pointer;
+}
+.grok-capsule-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.grok-send-btn.active,
+.grok-voice-btn { background: var(--gk-accent); color: var(--gk-text-inverse); }
+.grok-voice-btn:disabled { background: var(--gk-bg-hover); color: var(--gk-text-muted); }
+
+.grok-reply-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-1-5) var(--gk-space-2);
+  border-bottom: 1px solid var(--gk-line);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-reply-quote { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grok-reply-strip button { border: 0; background: transparent; color: var(--gk-text-muted); cursor: pointer; }
+
+/* ----------------------------------------------------------- question card -- */
+
+.grok-question-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-3);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-surface);
+}
+.grok-question-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gk-space-2);
+}
+.grok-question-title { margin: 0; font-size: var(--gk-font-size-base); font-weight: var(--gk-weight-semibold); }
+.grok-question-dismiss { border: 0; background: transparent; color: var(--gk-text-muted); cursor: pointer; }
+.grok-question-options {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  overflow: hidden;
+}
+.grok-question-answer-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  width: 100%;
+  padding: var(--gk-space-2-5) var(--gk-space-3);
+  border: 0;
+  border-bottom: 1px solid var(--gk-line);
+  background: var(--gk-bg-raised);
+  color: var(--gk-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grok-question-answer-row:last-child { border-bottom: 0; }
+.grok-question-answer-row:hover:not(:disabled) { background: var(--gk-bg-selected); }
+.grok-question-answer-row:disabled { opacity: 0.6; cursor: not-allowed; }
+.grok-question-answer-row.completed {
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  cursor: default;
+  color: var(--gk-text-muted);
+}
+.grok-question-letter {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--gk-radius-sm);
+  background: var(--gk-bg-hover);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-question-answer-label { flex: 1; min-width: 0; }
+.grok-question-check { color: var(--gk-ok); }
+.grok-question-check.muted { color: var(--gk-text-muted); }
+.grok-question-custom input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--gk-space-2-5) var(--gk-space-3);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-input);
+  color: var(--gk-text);
+  font: inherit;
+  outline: none;
+}
+.grok-question-meta,
+.grok-question-orphaned {
+  margin: 0;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+.grok-question-actions { display: flex; gap: var(--gk-space-2); }
+.grok-approval-payload {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: var(--gk-space-2);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-input);
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-xs);
+}
+
+/* ---------------------------------------------------------------- details -- */
+
+.grok-details-pane {
+  width: var(--gk-details-width);
+  min-width: var(--gk-details-width);
+  flex: 0 0 var(--gk-details-width);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--gk-line);
+  background: var(--gk-bg-app);
+  overflow: hidden;
+}
+
+.grok-panel-header {
+  height: var(--gk-header-height);
+  flex: 0 0 var(--gk-header-height);
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: 0 var(--gk-space-3);
+}
+.grok-panel-header.details { justify-content: flex-end; }
+.grok-panel-title {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font-size: var(--gk-font-size-base);
+  font-weight: var(--gk-weight-semibold);
+}
+
+.grok-details-body,
+.grok-settings-body,
+.grok-routine-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--gk-space-3) var(--gk-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-3);
+}
+
+.grok-computer-preview {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-surface);
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+}
+.grok-computer-caption {
+  margin: calc(var(--gk-space-2) * -1) 0 0;
+  text-align: center;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-computer-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-2);
+  text-align: center;
+  padding: var(--gk-space-4);
+  width: 100%;
+}
+.grok-computer-status { margin: 0; color: var(--gk-text-secondary); font-size: var(--gk-font-size-sm); }
+.grok-computer-reason {
+  margin: 0;
+  max-width: 40ch;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+.grok-computer-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 18px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ececec;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.grok-computer-retry-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+.grok-computer-retry-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.grok-computer-connected {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+.grok-computer-connected-body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--gk-space-2) var(--gk-space-3);
+}
+.grok-computer-files {
+  margin: var(--gk-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.grok-computer-files li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.grok-computer-files li svg {
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+.grok-computer-more { margin: var(--gk-space-1) 0 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+
+/* Desktop surface styles */
+.grok-computer-desktop {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.grok-desktop-screen {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+.grok-desktop-wallpaper {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 75% 15%, rgba(44, 134, 240, 0.15), transparent 45%),
+              linear-gradient(145deg, #181a1f 0%, #0e1014 55%, #08090b 100%);
+  z-index: 0;
+}
+.grok-desktop-glass-wave {
+  position: absolute;
+  top: -25%;
+  right: -15%;
+  width: 85%;
+  height: 130%;
+  border-radius: 45%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 65%);
+  pointer-events: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.07);
+}
+.grok-desktop-menubar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 11px;
+  color: var(--gk-text-secondary);
+}
+.grok-desktop-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--gk-text);
+}
+.grok-desktop-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--gk-text-muted);
+}
+.grok-desktop-status-pill.connected {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.2);
+}
+.grok-desktop-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+}
+.grok-desktop-center {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.grok-desktop-welcome {
+  text-align: center;
+  max-width: 440px;
+  padding: 24px 28px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+}
+.grok-desktop-welcome-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  color: var(--gk-text);
+}
+.grok-desktop-welcome h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gk-text);
+}
+.grok-desktop-welcome p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--gk-text-muted);
+  line-height: 1.6;
+}
+.grok-desktop-dock {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.fullscreen .grok-desktop-dock {
+  margin-bottom: 20px;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 18px;
+}
+.grok-dock-item {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--gk-text-secondary);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.fullscreen .grok-dock-item {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+.grok-dock-item:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.grok-routines-block { display: flex; flex-direction: column; gap: var(--gk-space-2); }
+.grok-routines-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-3);
+  padding: var(--gk-space-6) var(--gk-space-4);
+  text-align: center;
+}
+.grok-routines-empty p {
+  margin: 0;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+  line-height: var(--gk-line-height-lg);
+}
+.grok-routines-header { display: flex; align-items: center; justify-content: space-between; }
+.grok-routines-header h3 {
+  margin: 0;
+  font-size: var(--gk-font-size-sm);
+  font-weight: var(--gk-weight-semibold);
+  color: var(--gk-text-secondary);
+}
+.grok-routines-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-space-1); }
+.grok-routines-list button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grok-routines-list button:hover { background: var(--gk-bg-selected); }
+.grok-routine-name { font-size: var(--gk-font-size-base); font-weight: var(--gk-weight-medium); }
+.grok-routine-schedule, .grok-routine-next { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+
+/* ----------------------------------------------------------- bot settings -- */
+
+.grok-settings-avatar-wrap { display: flex; justify-content: center; padding-top: var(--gk-space-2); }
+.grok-avatar-button { border: 0; border-radius: var(--gk-radius-full); background: transparent; padding: var(--gk-space-1); cursor: pointer; }
+
+.grok-form-group { display: flex; flex-direction: column; gap: var(--gk-space-1-5); }
+.grok-form-label { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+/* Form fields are Coss `Input` and `Textarea` now.
+ *
+ * Both render a `<span data-slot="input-control">` around the control and put
+ * the border, the background, the focus ring and the disabled state on THAT.
+ * So these classes land on the wrapper, and what is left here is only the
+ * box: how wide it is, and whether it can be dragged taller. The border and
+ * ring declarations are gone rather than kept - two sources for one focus ring
+ * is how a focus ring ends up half-drawn.
+ *
+ * `font: inherit` is gone for a different reason: Coss sets the size itself
+ * (`text-base sm:text-sm`), and inheriting over the top of it made the control
+ * a different size from every other one in the same dialog. */
+.grok-form-input,
+.grok-form-textarea {
+  box-sizing: border-box;
+  width: 100%;
+}
+.grok-form-input.compact { width: auto; min-width: 160px; }
+.grok-form-textarea [data-slot='textarea'] {
+  resize: vertical;
+  line-height: var(--gk-line-height-lg);
+}
+.grok-field-hint { margin: 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); line-height: var(--gk-line-height-sm); }
+.grok-field-error { margin: 0; color: var(--gk-danger); font-size: var(--gk-font-size-xs); line-height: var(--gk-line-height-sm); }
+
+/* `.grok-form-error` is now a Coss Alert (see ui/FormError.tsx), which brings
+   its own border, tint and icon. Only the text colour is kept: Alert's `error`
+   variant colours the icon and the border but leaves the body at
+   `--color-card-foreground`, and an error message reads better in the danger
+   colour it always used here. */
+.grok-form-error [data-slot='alert-description'] {
+  color: var(--gk-danger);
+}
+
+.grok-notifications-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gk-space-3);
+  padding: var(--gk-space-3);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-surface);
+}
+.grok-notif-info { display: flex; flex-direction: column; gap: 2px; }
+.grok-notif-title { font-size: var(--gk-font-size-base); }
+.grok-notif-sub { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); line-height: var(--gk-line-height-sm); }
+
+.grok-switch, .grok-switch-inline { display: inline-flex; align-items: center; gap: var(--gk-space-2); cursor: pointer; }
+.grok-switch input, .grok-switch-inline input { position: absolute; opacity: 0; width: 0; height: 0; }
+.grok-switch-track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-hover);
+  box-shadow: 0 0 0 1px var(--gk-line) inset;
+  transition: background 0.15s ease;
+}
+.grok-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-text-muted);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+input:checked + .grok-switch-track { background: var(--gk-accent); }
+input:checked + .grok-switch-track::after { transform: translateX(14px); background: var(--gk-text-inverse); }
+input:focus-visible + .grok-switch-track { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+
+/* Reduced motion is honoured in the engine too (see BotFace); this covers the
+   CSS-only movement that the engine knows nothing about. */
+@media (prefers-reduced-motion: reduce) {
+  .grok-switch-track, .grok-switch-track::after { transition: none; }
+  .grok-spinner-icon { animation-duration: 2s; }
+  .grok-thinking-message i { animation: none; opacity: 0.6; }
+  /* The state-layer fades that came in with the Google shape language. They
+     are small, but "small" is not the test - the setting says no motion, and a
+     hover that fades is motion. The state itself still changes, instantly. */
+  .grok-icon-btn,
+  .grok-primary-btn,
+  .grok-secondary-btn,
+  .grok-danger-btn,
+  .grok-agent-row,
+  .grok-search-field {
+    transition: none;
+  }
+}
+
+.grok-primary-btn, .grok-secondary-btn, .grok-danger-btn {
+  padding: var(--gk-space-2) var(--gk-space-4);
+  /* Capsules. Combined with the extra horizontal padding this is the whole
+     Google shape language for actions, and it is what keeps a flat monochrome
+     button from reading as a block of background. */
+  border-radius: var(--gk-radius-full);
+  font: inherit;
+  font-weight: var(--gk-weight-medium);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+.grok-primary-btn:active:not(:disabled),
+.grok-secondary-btn:active:not(:disabled),
+.grok-danger-btn:active:not(:disabled) {
+  /* A press has to be visible on a flat surface, and there is no shadow here
+     to take away. Dimming is what is left. */
+  opacity: 0.82;
+}
+.grok-primary-btn { border: 0; background: var(--gk-accent); color: var(--gk-text-inverse); }
+.grok-secondary-btn { border: 1px solid var(--gk-line-strong); background: transparent; color: var(--gk-text); }
+.grok-danger-btn { border: 0; background: var(--gk-danger); color: #fff; }
+.grok-primary-btn:disabled, .grok-secondary-btn:disabled, .grok-danger-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.grok-secondary-btn:hover:not(:disabled) { background: var(--gk-bg-hover); }
+
+.grok-advanced { border-top: 1px solid var(--gk-line); padding-top: var(--gk-space-3); }
+.grok-advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  width: 100%;
+  padding: var(--gk-space-2) 0;
+  border: 0;
+  background: transparent;
+  color: var(--gk-text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.grok-advanced-body { display: flex; flex-direction: column; gap: var(--gk-space-3); padding-top: var(--gk-space-2); }
+.grok-color-field, .grok-range-field, .grok-check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-color-field { justify-content: space-between; }
+.grok-range-field { flex-direction: column; align-items: stretch; }
+.grok-range-field span { display: flex; justify-content: space-between; }
+.grok-config-tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-2);
+  border-top: 1px solid var(--gk-line);
+  padding-top: var(--gk-space-3);
+}
+.grok-config-message { margin: 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+.grok-license-note { margin: 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); line-height: var(--gk-line-height-sm); }
+.grok-license-note a { color: var(--gk-text-secondary); }
+
+/* --------------------------------------------------------- avatar popover -- */
+
+.grok-avatar-popover { padding: var(--gk-space-2); }
+.grok-avatar-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-1);
+  padding-bottom: var(--gk-space-2);
+  border-bottom: 1px solid var(--gk-line);
+}
+.grok-avatar-tabs button {
+  padding: var(--gk-space-1) var(--gk-space-2);
+  border: 0;
+  border-radius: var(--gk-radius-base);
+  background: transparent;
+  color: var(--gk-text-muted);
+  font: inherit;
+  font-size: var(--gk-font-size-sm);
+  cursor: pointer;
+}
+.grok-avatar-tabs button.active { background: var(--gk-bg-hover); color: var(--gk-text); }
+.grok-avatar-reset { margin-left: auto; }
+
+.grok-avatar-bot-tab { display: flex; flex-direction: column; gap: var(--gk-space-3); padding-top: var(--gk-space-3); }
+.grok-shape-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gk-space-2); }
+.grok-shape-swatch {
+  display: grid;
+  place-items: center;
+  padding: var(--gk-space-1);
+  border: 2px solid transparent;
+  border-radius: var(--gk-radius-lg);
+  background: transparent;
+  cursor: pointer;
+}
+.grok-shape-swatch.selected { border-color: var(--gk-focus); }
+.grok-color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gk-space-2); }
+.grok-color-swatch {
+  width: 26px;
+  height: 26px;
+  border: 2px solid transparent;
+  border-radius: var(--gk-radius-full);
+  box-shadow: 0 0 0 1px var(--gk-line) inset;
+  cursor: pointer;
+}
+.grok-color-swatch.selected { outline: 2px solid var(--gk-focus); outline-offset: 2px; }
+
+.grok-avatar-generate, .grok-avatar-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-2);
+  padding-top: var(--gk-space-3);
+}
+.grok-avatar-generate textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--gk-space-2);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-input);
+  color: var(--gk-text);
+  font: inherit;
+  resize: vertical;
+}
+.grok-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gk-space-2);
+  min-height: 150px;
+  padding: var(--gk-space-4);
+  border: 1px dashed var(--gk-line-strong);
+  border-radius: var(--gk-radius-lg);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+  text-align: center;
+}
+.grok-dropzone p { margin: 0; }
+
+/* --------------------------------------------------------- routine editor -- */
+
+.grok-routine-editor { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.grok-routine-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gk-space-2);
+  padding: 0 var(--gk-space-3) var(--gk-space-3);
+}
+.grok-routine-toolbar-actions { display: flex; gap: var(--gk-space-2); }
+.grok-routine-toolbar .grok-secondary-btn { padding: var(--gk-space-1) var(--gk-space-2-5); font-size: var(--gk-font-size-sm); }
+
+.grok-inline-confirm {
+  margin: 0 var(--gk-space-3) var(--gk-space-3);
+  padding: var(--gk-space-3);
+  border: 1px solid var(--gk-danger);
+  border-radius: var(--gk-radius-lg);
+  background: color-mix(in srgb, var(--gk-danger) 10%, transparent);
+}
+.grok-inline-confirm p { margin: 0 0 var(--gk-space-2); font-size: var(--gk-font-size-sm); }
+.grok-inline-confirm div { display: flex; gap: var(--gk-space-2); }
+
+.grok-trigger-section { display: flex; flex-direction: column; gap: var(--gk-space-2); }
+.grok-trigger-section h3 { margin: 0; }
+.grok-trigger-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-2);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-surface);
+}
+.grok-trigger-row { display: flex; flex-direction: column; gap: var(--gk-space-2); }
+.grok-trigger-summary { display: flex; align-items: center; gap: var(--gk-space-2); font-size: var(--gk-font-size-sm); }
+.grok-trigger-summary span:nth-child(2) { flex: 1; min-width: 0; }
+.grok-trigger-summary button { border: 0; background: transparent; color: var(--gk-text-muted); cursor: pointer; }
+.grok-trigger-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+  padding: var(--gk-space-2);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-raised);
+}
+.grok-mini-select, .grok-mini-input {
+  padding: var(--gk-space-1) var(--gk-space-1-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-sm);
+  background: var(--gk-bg-input);
+  color: var(--gk-text);
+  font: inherit;
+  font-size: var(--gk-font-size-sm);
+  max-width: 100%;
+}
+.grok-mini-input { width: 64px; }
+.grok-mini-input.wide { width: 150px; }
+.grok-inline-word, .grok-inline-field {
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+}
+
+.grok-advanced-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-2);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-raised);
+}
+.grok-advanced-row { display: flex; align-items: center; gap: var(--gk-space-2); font-size: var(--gk-font-size-sm); color: var(--gk-text-muted); }
+.grok-advanced-row > span:first-child { min-width: 52px; }
+
+.grok-add-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-2);
+  border: 0;
+  border-radius: var(--gk-radius-base);
+  background: transparent;
+  color: var(--gk-text-secondary);
+  font: inherit;
+  font-size: var(--gk-font-size-sm);
+  cursor: pointer;
+}
+.grok-add-trigger:hover { background: var(--gk-bg-hover); }
+.grok-add-trigger.small { padding: var(--gk-space-1) var(--gk-space-2); }
+
+.grok-schedule-preview { margin: 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); line-height: var(--gk-line-height-sm); }
+.grok-schedule-preview code { color: var(--gk-text-secondary); }
+
+.grok-run-history { display: flex; flex-direction: column; gap: var(--gk-space-2); }
+.grok-run-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-space-1); }
+.grok-run-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-1-5) var(--gk-space-2);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-surface);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-run-status { font-weight: var(--gk-weight-semibold); color: var(--gk-text-secondary); }
+.grok-run-status.completed { color: var(--gk-ok); }
+.grok-run-status.failed, .grok-run-status.crashed, .grok-run-status.aborted { color: var(--gk-danger); }
+.grok-run-time { flex: 1; min-width: 0; color: var(--gk-text-muted); }
+.grok-run-cost { color: var(--gk-text-muted); }
+/* Posting (spec 10.1): run badges, the BLOCKED label, the pending banner and the Waiting marker. */
+.grok-run-status.blocked { color: var(--gk-warn); }
+.grok-run-list li:has(.grok-run-badges) { flex-wrap: wrap; }
+.grok-run-badges { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: var(--gk-space-1); }
+.grok-run-badge { padding: 0 var(--gk-space-1-5); border-radius: var(--gk-radius-full); background: var(--gk-bg-selected); color: var(--gk-text-secondary); text-decoration: none; }
+.grok-run-badge.ok { color: var(--gk-ok); }
+.grok-run-badge.warn { color: var(--gk-warn); }
+.grok-run-badge.bad { color: var(--gk-danger); }
+.grok-posting-section { display: flex; flex-direction: column; gap: var(--gk-space-2); }
+.grok-posting-section h3 { margin: 0; }
+.grok-pending-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-3);
+  border: 1px solid var(--gk-warn);
+  border-radius: var(--gk-radius-lg);
+  background: color-mix(in srgb, var(--gk-warn) 10%, transparent);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-pending-banner p { margin: 0; }
+.grok-pending-item { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-space-1); }
+.grok-pending-banner .grok-inline-confirm { align-self: stretch; margin: 0; }
+.grok-routine-waiting { align-self: flex-start; padding: 0 var(--gk-space-1-5); border-radius: var(--gk-radius-full); background: color-mix(in srgb, var(--gk-warn) 20%, transparent); color: var(--gk-warn); font-size: var(--gk-font-size-xs); }
+
+/* --------------------------------------------------------------- popovers -- */
+
+.grok-popover {
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  padding: var(--gk-space-1);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-raised);
+  box-shadow: var(--gk-shadow-popover);
+  color: var(--gk-text);
+  font-family: var(--gk-font-sans);
+  font-size: var(--gk-font-size-base);
+}
+.grok-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  width: 100%;
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 0;
+  border-radius: var(--gk-radius-base);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grok-menu-item:hover:not(:disabled) { background: var(--gk-bg-hover); }
+.grok-menu-item:disabled { opacity: 0.4; cursor: not-allowed; }
+.grok-menu-item.danger { color: var(--gk-danger); }
+.grok-menu-icon { width: 16px; text-align: center; color: var(--gk-text-muted); }
+.grok-menu-item.danger .grok-menu-icon { color: var(--gk-danger); }
+.grok-menu-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grok-menu-separator { height: 1px; margin: var(--gk-space-1) 0; background: var(--gk-line); }
+.grok-menu-empty {
+  margin: 0;
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+
+.grok-message-menu { padding: var(--gk-space-1-5); }
+.grok-quick-reactions {
+  display: flex;
+  gap: var(--gk-space-1);
+  padding-bottom: var(--gk-space-1-5);
+  margin-bottom: var(--gk-space-1);
+  border-bottom: 1px solid var(--gk-line);
+}
+.grok-quick-reactions button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--gk-radius-full);
+  background: transparent;
+  font-size: 15px;
+  cursor: pointer;
+}
+.grok-quick-reactions button:hover { background: var(--gk-bg-hover); }
+.grok-quick-more { color: var(--gk-text-muted); }
+
+.grok-emoji-popover { padding: var(--gk-space-2); gap: var(--gk-space-2); }
+.grok-emoji-search {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-1-5) var(--gk-space-2);
+  border-bottom: 1px solid var(--gk-line);
+  color: var(--gk-text-muted);
+}
+.grok-emoji-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--gk-text); font: inherit; outline: none; }
+.grok-emoji-scroll { max-height: 280px; overflow-y: auto; }
+.grok-emoji-heading {
+  margin: var(--gk-space-2) 0 var(--gk-space-1);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  font-weight: var(--gk-weight-medium);
+}
+.grok-emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+.grok-emoji-cell {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--gk-radius-base);
+  background: transparent;
+  font-size: 17px;
+  cursor: pointer;
+}
+.grok-emoji-cell:hover { background: var(--gk-bg-hover); }
+.grok-emoji-empty { margin: var(--gk-space-3) 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-sm); text-align: center; }
+
+/* ----------------------------------------------------------------- modals -- */
+
+.grok-modal-backdrop,
+.grok-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--gk-bg-overlay);
+}
+
+.grok-modal-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: 201;
+  display: grid;
+  place-items: center;
+  padding: var(--gk-space-4);
+  overflow-y: auto;
+  font-family: var(--gk-font-sans);
+  font-size: var(--gk-font-size-base);
+  color: var(--gk-text);
+  pointer-events: auto;
+}
+
+.grok-modal-popup {
+  position: relative;
+  outline: none;
+  max-width: 100%;
+}
+
+/* Electron's 44px title bar is a real draggable input region at z-index 500.
+   A centred dialog used to begin at y=11, putting its close button directly
+   underneath that region: it looked clickable, and its React unit test passed,
+   but the packaged window sent the pointer to window dragging instead. Keep the
+   whole modal interaction surface below the native chrome. */
+html.oh-desktop .grok-modal-backdrop,
+html.oh-desktop .grok-modal-overlay,
+html.oh-desktop .grok-modal-viewport {
+  top: var(--oh-titlebar-height);
+}
+
+
+.grok-search-dialog {
+  width: min(560px, 100%);
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-raised);
+  box-shadow: var(--gk-shadow-popover);
+  overflow: hidden;
+}
+.grok-search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  margin: var(--gk-space-3) var(--gk-space-3) var(--gk-space-2);
+  padding: var(--gk-space-2-5) var(--gk-space-3-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-input);
+  color: var(--gk-text-muted);
+  transition: border-color 120ms ease;
+}
+.grok-search-field:focus-within { border-color: var(--gk-line-strong); }
+.grok-search-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gk-text);
+  font: inherit;
+  font-size: var(--gk-font-size-lg);
+  outline: none;
+}
+.grok-search-tabs {
+  display: flex;
+  gap: var(--gk-space-1);
+  padding: 0 var(--gk-space-3) var(--gk-space-2);
+  border-bottom: 1px solid var(--gk-line);
+  overflow-x: auto;
+}
+.grok-search-tabs button {
+  padding: var(--gk-space-1) var(--gk-space-2);
+  border: 0;
+  border-radius: var(--gk-radius-base);
+  background: transparent;
+  color: var(--gk-text-muted);
+  font: inherit;
+  font-size: var(--gk-font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.grok-search-tabs button.active { background: var(--gk-bg-hover); color: var(--gk-text); }
+.grok-search-results { flex: 1; min-height: 0; overflow-y: auto; padding: var(--gk-space-2); }
+.grok-search-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  width: 100%;
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 0;
+  border-radius: var(--gk-radius-lg);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grok-search-row.cursor { background: var(--gk-bg-hover); }
+.grok-search-row-icon { flex: 0 0 auto; display: flex; }
+.grok-search-glyph {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-hover);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-search-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.grok-search-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grok-search-row-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-search-row-kind { flex: 0 0 auto; color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+.grok-search-message {
+  padding: var(--gk-space-6) var(--gk-space-4);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+  text-align: center;
+}
+
+.grok-search-skeletons { display: flex; flex-direction: column; gap: var(--gk-space-3); padding: var(--gk-space-2); }
+/* --- skeletons ---
+   A STATIC grey block does not read as loading. It reads as a layout that
+   failed to fill in, and the longer it sits there the more it looks broken.
+   The shimmer is the difference between "this is coming" and "this is stuck",
+   and it is the one Magic UI effect that earns its place in an interface this
+   restrained: a highlight travelling across the placeholder, which is motion
+   that carries information rather than decoration.
+
+   Technique from Magic UI (magicui.design, MIT). Implemented in CSS rather
+   than copied - theirs is a Tailwind gradient utility, and this is a token. */
+.grok-skeleton-row { display: flex; align-items: center; gap: var(--gk-space-3); }
+.grok-skeleton-avatar { width: 24px; height: 24px; border-radius: var(--gk-radius-full); }
+.grok-skeleton-lines { flex: 1; display: flex; flex-direction: column; gap: var(--gk-space-1-5); }
+.grok-skeleton-lines [data-slot='skeleton'] { height: 8px; }
+/* The shimmer itself is Coss's Skeleton now - a moving gradient driven by the
+   `--animate-skeleton` token defined in tailwind.css. The hand-written version
+   here was a ::after sweep doing the same job, and keeping both would mean two
+   shimmers at two speeds on the same element.
+
+   The reduced-motion rule went with it: it silenced a `::after` sweep that no
+   longer exists, and `[data-slot='skeleton']` is handled once in tailwind.css
+   alongside the token that drives it. */
+
+.grok-marketplace-modal {
+  width: min(800px, 100%);
+  height: min(700px, 88vh);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-raised);
+  box-shadow: var(--gk-shadow-popover);
+  overflow: hidden;
+}
+.grok-mp-header { display: flex; align-items: center; gap: var(--gk-space-3); padding: var(--gk-space-4); }
+.grok-mp-title { flex: 1; margin: 0; font-size: 17px; font-weight: var(--gk-weight-semibold); }
+.grok-mp-title.centered { text-align: center; }
+.grok-mp-pill-toggle {
+  display: flex;
+  gap: var(--gk-space-1);
+  padding: 2px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-hover);
+}
+.grok-mp-pill-btn {
+  padding: var(--gk-space-1) var(--gk-space-3);
+  border: 0;
+  border-radius: var(--gk-radius-full);
+  background: transparent;
+  color: var(--gk-text-muted);
+  font: inherit;
+  font-size: var(--gk-font-size-sm);
+  cursor: pointer;
+}
+.grok-mp-pill-btn.active { background: var(--gk-bg-raised); color: var(--gk-text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+.grok-mp-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--gk-space-4) var(--gk-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-3);
+}
+.grok-mp-installed-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+  padding: var(--gk-space-1) 0;
+  border: 0;
+  background: transparent;
+  color: var(--gk-text-secondary);
+  font: inherit;
+  font-size: var(--gk-font-size-sm);
+  cursor: pointer;
+}
+.grok-mp-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-2) var(--gk-space-3);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-input);
+  color: var(--gk-text-muted);
+}
+.grok-mp-search-input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--gk-text); font: inherit; outline: none; }
+.grok-mp-categories { display: flex; flex-wrap: wrap; gap: var(--gk-space-2); }
+.grok-mp-category-pill {
+  padding: var(--gk-space-1) var(--gk-space-2-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-full);
+  background: transparent;
+  color: var(--gk-text-secondary);
+  font: inherit;
+  font-size: var(--gk-font-size-sm);
+  cursor: pointer;
+}
+.grok-mp-category-pill.active { background: var(--gk-accent); border-color: var(--gk-accent); color: var(--gk-text-inverse); }
+.grok-mp-note { margin: 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); line-height: var(--gk-line-height-sm); }
+.grok-mp-section { display: flex; flex-direction: column; gap: var(--gk-space-2); }
+.grok-mp-section-title { margin: 0; font-size: var(--gk-font-size-lg); font-weight: var(--gk-weight-semibold); }
+.grok-mp-featured-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gk-space-3); }
+.grok-mp-featured-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-1);
+  padding: var(--gk-space-4) var(--gk-space-2);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.grok-mp-featured-card:hover { background: var(--gk-bg-selected); }
+.grok-mp-featured-creator { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+.grok-mp-featured-name { font-size: var(--gk-font-size-base); font-weight: var(--gk-weight-semibold); text-align: center; }
+.grok-mp-list-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-space-2); }
+.grok-mp-list-item { display: flex; align-items: center; gap: var(--gk-space-2); padding: var(--gk-space-2); border-radius: var(--gk-radius-lg); }
+.grok-mp-list-item:hover { background: var(--gk-bg-hover); }
+.grok-mp-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grok-mp-item-logo {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-selected);
+  color: var(--gk-text-secondary);
+  font-weight: var(--gk-weight-semibold);
+}
+.grok-mp-item-logo.large { width: 52px; height: 52px; font-size: 20px; }
+.grok-mp-item-info { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.grok-mp-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--gk-weight-medium); }
+.grok-mp-item-name em { color: var(--gk-text-muted); font-style: normal; font-weight: var(--gk-weight-regular); }
+.grok-mp-item-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-mp-add-btn {
+  flex: 0 0 auto;
+  padding: var(--gk-space-1) var(--gk-space-3);
+  border: 1px solid var(--gk-line-strong);
+  border-radius: var(--gk-radius-full);
+  background: transparent;
+  color: var(--gk-text);
+  font: inherit;
+  font-size: var(--gk-font-size-sm);
+  cursor: pointer;
+}
+.grok-mp-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.grok-mp-state { flex: 0 0 auto; font-size: var(--gk-font-size-xs); }
+.grok-mp-state.ok { color: var(--gk-ok); }
+.grok-mp-state.bad { color: var(--gk-text-muted); }
+.grok-mp-state.inline { display: block; margin: var(--gk-space-2) 0; }
+.grok-mp-empty { margin: 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-sm); line-height: var(--gk-line-height-lg); }
+.grok-mp-installed { display: flex; flex-direction: column; gap: var(--gk-space-5); }
+.grok-mp-list-item.static { border: 1px solid var(--gk-line); }
+.grok-mp-subheading { margin: var(--gk-space-3) 0 var(--gk-space-1); font-size: var(--gk-font-size-sm); color: var(--gk-text-muted); }
+
+.grok-plugin-detail, .grok-bot-detail { display: flex; flex-direction: column; gap: var(--gk-space-2); }
+.grok-plugin-head { display: flex; align-items: center; gap: var(--gk-space-3); }
+.grok-plugin-headings { flex: 1; min-width: 0; }
+.grok-plugin-headings h3 { margin: 0; font-size: 17px; }
+.grok-plugin-headings a { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+.grok-plugin-head-actions { display: flex; gap: var(--gk-space-2); }
+.grok-plugin-desc { margin: 0; color: var(--gk-text-secondary); line-height: var(--gk-line-height-lg); }
+.grok-connector-accordion { border: 1px solid var(--gk-line); border-radius: var(--gk-radius-lg); overflow: hidden; }
+.grok-connector-accordion > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--gk-space-2-5) var(--gk-space-3);
+  border: 0;
+  background: var(--gk-bg-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.grok-connector-accordion ul { list-style: none; margin: 0; padding: 0; }
+.grok-connector-accordion li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gk-space-2-5) var(--gk-space-3);
+  border-top: 1px solid var(--gk-line);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-connector-type { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+.grok-config-block {
+  margin: 0;
+  padding: var(--gk-space-3);
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-input);
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+  overflow-x: auto;
+}
+
+.grok-bot-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--gk-space-3); }
+.grok-bot-detail-name { margin: 0; font-size: 20px; }
+.grok-bot-detail-author { margin: 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-sm); }
+.grok-bot-detail-summary { margin: 0 0 var(--gk-space-2); color: var(--gk-text-secondary); line-height: var(--gk-line-height-lg); }
+.grok-bot-detail-columns {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: var(--gk-space-4);
+  border-top: 1px solid var(--gk-line);
+  padding-top: var(--gk-space-4);
+}
+.grok-bot-detail-nav { display: flex; flex-direction: column; gap: var(--gk-space-1); }
+.grok-bot-detail-nav button {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 0;
+  border-radius: var(--gk-radius-lg);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grok-bot-detail-nav button.active { background: var(--gk-bg-selected); }
+.grok-bot-detail-nav-title { font-weight: var(--gk-weight-medium); }
+.grok-bot-detail-nav-hint { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+.grok-bot-detail-panel {
+  padding: var(--gk-space-3-5);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-surface);
+  color: var(--gk-text-secondary);
+  line-height: var(--gk-line-height-lg);
+}
+.grok-bot-detail-panel p { margin: 0; white-space: pre-wrap; }
+.grok-bot-detail-panel ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-space-3); }
+.grok-bot-detail-panel li { display: flex; flex-direction: column; gap: 2px; }
+.grok-bot-detail-panel strong { color: var(--gk-text); }
+.grok-detail-note { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+
+.grok-settings-modal {
+  width: min(900px, 100%);
+  height: min(700px, 88vh);
+  display: flex;
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-raised);
+  box-shadow: var(--gk-shadow-popover);
+  overflow: hidden;
+}
+.grok-settings-nav {
+  width: 200px;
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-1);
+  padding: var(--gk-space-4) var(--gk-space-2);
+  border-right: 1px solid var(--gk-line);
+  background: var(--gk-bg-surface);
+}
+.grok-settings-nav button {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 0;
+  border-radius: var(--gk-radius-lg);
+  background: transparent;
+  color: var(--gk-text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.grok-settings-nav button.active { background: var(--gk-bg-selected); color: var(--gk-text); }
+.grok-settings-pane { flex: 1; min-width: 0; overflow-y: auto; padding: var(--gk-space-4) var(--gk-space-5) var(--gk-space-6); }
+.grok-settings-pane-head { display: flex; align-items: center; justify-content: space-between; }
+.grok-settings-pane-head h2 { margin: 0; font-size: 19px; }
+.grok-settings-group-title {
+  margin: var(--gk-space-5) 0 var(--gk-space-2);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  font-weight: var(--gk-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+/* The settings cards are Coss `Card` now, which brings the border, the radius,
+   the surface colour and the column layout - all of it resolving through the
+   token bridge, so it is still this app's palette. What it does NOT set is
+   `overflow`, and these cards clip rows that meet their rounded corners, so
+   that is all that is left here. The rest was deleted rather than kept as a
+   duplicate that would quietly disagree the next time one of them changed. */
+.grok-settings-card {
+  overflow: hidden;
+}
+.grok-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gk-space-4);
+  padding: var(--gk-space-3) var(--gk-space-3-5);
+  border-bottom: 1px solid var(--gk-line);
+}
+.grok-settings-row:last-child { border-bottom: 0; }
+.grok-settings-row label { color: var(--gk-text); }
+.grok-settings-value { color: var(--gk-text-secondary); font-size: var(--gk-font-size-sm); text-align: right; }
+.grok-settings-unavailable {
+  max-width: 60%;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+  text-align: right;
+}
+.grok-settings-note {
+  margin: 0;
+  padding: var(--gk-space-2-5) var(--gk-space-3-5) var(--gk-space-3);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+.grok-usage-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gk-space-3);
+  padding: var(--gk-space-3-5) var(--gk-space-3-5) var(--gk-space-2);
+  font-size: var(--gk-font-size-lg);
+}
+.grok-usage-cap { color: var(--gk-text-muted); font-size: var(--gk-font-size-sm); }
+.grok-usage-bar {
+  height: 6px;
+  margin: 0 var(--gk-space-3-5);
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-hover);
+  overflow: hidden;
+}
+.grok-usage-bar span { display: block; height: 100%; background: var(--gk-ok); }
+
+.grok-template-dialog {
+  width: min(400px, 100%);
+  max-height: min(540px, 86vh);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-raised);
+  box-shadow: var(--gk-shadow-popover);
+  overflow: hidden;
+}
+.grok-template-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--gk-space-5) var(--gk-space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-2);
+}
+.grok-template-avatar { display: flex; }
+.grok-template-name { margin: var(--gk-space-2) 0 0; font-size: 18px; }
+.grok-template-author { margin: 0; color: var(--gk-text-muted); font-size: var(--gk-font-size-sm); }
+.grok-template-desc {
+  margin: var(--gk-space-2) 0;
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-sm);
+  line-height: var(--gk-line-height-lg);
+  text-align: center;
+}
+.grok-template-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--gk-space-3);
+  border: 0;
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.grok-template-row span:first-child { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.grok-template-row em { color: var(--gk-text-muted); font-style: normal; font-size: var(--gk-font-size-xs); }
+.grok-template-status { margin: auto 0 0; }
+.grok-status-pill {
+  padding: 2px var(--gk-space-2);
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-hover);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-template-subhead { display: flex; align-items: center; gap: var(--gk-space-2); width: 100%; }
+.grok-template-subhead h2 { margin: 0; font-size: var(--gk-font-size-lg); }
+.grok-template-instructions {
+  width: 100%;
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--gk-text-secondary);
+  font-family: var(--gk-font-sans);
+  font-size: var(--gk-font-size-sm);
+  line-height: var(--gk-line-height-lg);
+}
+.grok-template-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-3) var(--gk-space-4);
+  border-top: 1px solid var(--gk-line);
+}
+
+.grok-computer-fullscreen {
+  width: min(1200px, 96vw);
+  height: min(820px, 92vh);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-transcript);
+  overflow: hidden;
+}
+.grok-computer-fullscreen-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-2-5) var(--gk-space-3);
+  border-bottom: 1px solid var(--gk-line);
+}
+.grok-computer-fullscreen-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.grok-first-run {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gk-space-2);
+  background: var(--gk-bg-app);
+  text-align: center;
+  padding: var(--gk-space-6);
+}
+.grok-first-run h1 { margin: 0; font-size: 22px; }
+.grok-first-run p { margin: 0 0 var(--gk-space-3); max-width: 420px; color: var(--gk-text-muted); line-height: var(--gk-line-height-lg); }
+
+.grok-toast {
+  position: fixed;
+  left: 50%;
+  bottom: var(--gk-space-5);
+  transform: translateX(-50%);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-3);
+  max-width: min(520px, calc(100vw - 32px));
+  padding: var(--gk-space-2-5) var(--gk-space-3);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-lg);
+  background: var(--gk-bg-raised);
+  box-shadow: var(--gk-shadow-popover);
+  color: var(--gk-text);
+  font-family: var(--gk-font-sans);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-toast button { border: 0; background: transparent; color: var(--gk-text-muted); cursor: pointer; }
+
+/* --------------------------------------------------------------- new bot -- */
+
+.grok-onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  background: var(--gk-bg-app);
+  color: var(--gk-text);
+  font-family: var(--gk-font-sans);
+  font-size: var(--gk-font-size-base);
+}
+.grok-onboarding-sidebar {
+  width: var(--gk-sidebar-width);
+  flex: 0 0 var(--gk-sidebar-width);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-4);
+  padding: var(--gk-space-5) var(--gk-space-3);
+  border-right: 1px solid var(--gk-line);
+  box-sizing: border-box;
+}
+.grok-brand { display: flex; align-items: baseline; gap: var(--gk-space-1-5); font-size: var(--gk-font-size-lg); }
+.grok-brand span { color: var(--gk-text-muted); font-size: var(--gk-font-size-sm); }
+.grok-onboarding-current {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2-5);
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-surface);
+}
+.grok-onboarding-spacer { flex: 1; display: grid; place-items: center; color: var(--gk-text-muted); font-size: var(--gk-font-size-sm); }
+.grok-onboarding-main { flex: 1; min-width: 0; overflow-y: auto; }
+.grok-onboarding-studio {
+  width: min(620px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 54px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-5);
+}
+.grok-color-row { display: flex; flex-wrap: wrap; gap: var(--gk-space-2); justify-content: center; }
+.grok-color-row button { width: 26px; height: 26px; border: 2px solid transparent; border-radius: var(--gk-radius-full); cursor: pointer; }
+.grok-color-row button.selected { outline: 2px solid var(--gk-focus); outline-offset: 2px; }
+.grok-custom-color {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--gk-line-strong);
+  border-radius: var(--gk-radius-full);
+  color: var(--gk-text-muted);
+  cursor: pointer;
+}
+.grok-custom-color input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.grok-shape-row { display: flex; flex-wrap: wrap; gap: var(--gk-space-2); justify-content: center; }
+.grok-shape-row button {
+  width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-1);
+  padding: var(--gk-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--gk-radius-lg);
+  background: transparent;
+  color: var(--gk-text-muted);
+  font: inherit;
+  font-size: var(--gk-font-size-xs);
+  cursor: pointer;
+}
+.grok-shape-row button.selected { border-color: var(--gk-line-strong); background: var(--gk-bg-surface); color: var(--gk-text); }
+.grok-onboarding-form { width: min(480px, 100%); display: flex; flex-direction: column; gap: var(--gk-space-3); }
+.grok-onboarding-form label { display: flex; flex-direction: column; gap: var(--gk-space-1-5); color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+.grok-onboarding-form input, .grok-onboarding-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-input);
+  color: var(--gk-text);
+  font: inherit;
+  outline: none;
+}
+.grok-onboarding-grid { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: var(--gk-space-2-5); }
+.grok-onboarding-form .grok-eye-color { flex-direction: row; align-items: center; justify-content: space-between; }
+.grok-onboarding-form .grok-eye-color input { width: 48px; height: 30px; padding: 2px; }
+
+/* ------------------------------------------------------------ responsive -- */
+
+/* The side columns stay fixed and the transcript absorbs the difference, which
+   is what the 1047px and 1536px captures show. Below ~1000px the details panel
+   becomes an overlay rather than squeezing the conversation to nothing. */
+@media (max-width: 1000px) {
+  .grok-details-pane {
+    position: fixed;
+    z-index: 90;
+    inset: 0 0 0 auto;
+    width: min(var(--gk-details-width), 92vw);
+    box-shadow: -18px 0 40px rgba(0, 0, 0, 0.4);
+  }
+  .grok-mp-featured-grid { grid-template-columns: repeat(2, 1fr); }
+  .grok-mp-list-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 760px) {
+  :root { --gk-sidebar-width: 84px; }
+  .grok-sidebar-heading,
+  .grok-agent-text,
+  .grok-search-placeholder,
+  .grok-footer-btn span:last-child,
+  .grok-user-info { display: none; }
+  .grok-agent-row { justify-content: center; }
+  .grok-search-box { justify-content: center; }
+  .grok-messages-container { padding: var(--gk-space-3); }
+  .grok-chat-footer { padding: var(--gk-space-2) var(--gk-space-3) var(--gk-space-3); }
+  .grok-message-content { max-width: 92%; }
+  .grok-settings-modal { flex-direction: column; }
+  .grok-settings-nav {
+    width: auto;
+    flex: 0 0 auto;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--gk-line);
+  }
+  .grok-bot-detail-columns { grid-template-columns: minmax(0, 1fr); }
+  .grok-onboarding-sidebar { display: none; }
+}
+
+/* ------------------------------------------------ attachments & dictation -- */
+
+.grok-attachment-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--gk-space-1) var(--gk-space-2) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-1);
+}
+.grok-attachment-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-1) var(--gk-space-2);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-input);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-attachment-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grok-attachment-size { color: var(--gk-text-muted); font-size: var(--gk-font-size-xs); }
+.grok-attachment-list button {
+  border: 0;
+  background: transparent;
+  color: var(--gk-text-muted);
+  cursor: pointer;
+}
+.grok-attachment-error {
+  margin: 0;
+  padding: var(--gk-space-1) var(--gk-space-2);
+  color: var(--gk-danger);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+.grok-dictation-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  margin: 0;
+  padding: var(--gk-space-1) var(--gk-space-2);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-dictation-strip em { color: var(--gk-text-secondary); font-style: normal; }
+.grok-dictation-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-danger);
+  animation: grok-pulse 1.4s ease-in-out infinite;
+}
+@keyframes grok-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.grok-voice-btn.listening { background: var(--gk-danger); color: #fff; }
+@media (prefers-reduced-motion: reduce) {
+  .grok-dictation-dot { animation: none; opacity: 1; }
+}
+
+/* ----------------------------------------------------- webhook & confirms -- */
+
+.grok-webhook-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-2);
+  padding: var(--gk-space-2);
+  border-radius: var(--gk-radius-base);
+  background: var(--gk-bg-raised);
+}
+.grok-webhook-url {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: var(--gk-space-1-5) var(--gk-space-2);
+  border-radius: var(--gk-radius-sm);
+  background: var(--gk-bg-input);
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+.grok-webhook-actions { display: flex; gap: var(--gk-space-2); }
+.grok-webhook-actions .grok-secondary-btn { padding: var(--gk-space-1) var(--gk-space-2-5); font-size: var(--gk-font-size-sm); }
+
+.grok-mp-restart {
+  margin: 0;
+  padding: var(--gk-space-2) var(--gk-space-2-5);
+  border: 1px solid var(--gk-ok);
+  border-radius: var(--gk-radius-base);
+  background: color-mix(in srgb, var(--gk-ok) 12%, transparent);
+  color: var(--gk-text);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+
+.grok-confirm-dialog {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-3);
+  padding: var(--gk-space-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-raised);
+  box-shadow: var(--gk-shadow-popover);
+}
+.grok-confirm-dialog h2 { margin: 0; font-size: 17px; }
+.grok-confirm-dialog p { margin: 0; color: var(--gk-text-secondary); line-height: var(--gk-line-height-lg); }
+.grok-confirm-actions { display: flex; justify-content: flex-end; gap: var(--gk-space-2); }
+
+/* ------------------------------------------------------- avatar gallery -- */
+
+.grok-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-3);
+  min-width: 0;
+}
+.grok-gallery-heading { margin: 0; font-size: 20px; font-weight: var(--gk-weight-semibold); }
+
+.grok-gallery-families { display: flex; gap: var(--gk-space-3); }
+.grok-family-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+  padding: var(--gk-space-3) var(--gk-space-2);
+  border: 2px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.grok-family-card:hover { background: var(--gk-bg-selected); }
+.grok-family-card.selected { border-color: var(--gk-focus); }
+.grok-family-name { font-size: var(--gk-font-size-base); font-weight: var(--gk-weight-semibold); }
+.grok-family-badge {
+  padding: 1px var(--gk-space-2);
+  border-radius: var(--gk-radius-full);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-family-badge.ok { background: color-mix(in srgb, var(--gk-ok) 20%, transparent); color: var(--gk-ok); }
+.grok-family-badge.warn { background: color-mix(in srgb, var(--gk-warn) 20%, transparent); color: var(--gk-warn); }
+.grok-gallery-note {
+  margin: 0;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+
+.grok-gallery-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gk-space-3);
+  padding: var(--gk-space-2) 0;
+  border-top: 1px solid var(--gk-line);
+  border-bottom: 1px solid var(--gk-line);
+}
+.grok-gallery-viewtoggle {
+  display: flex;
+  padding: 2px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-hover);
+}
+.grok-gallery-viewtoggle button {
+  padding: var(--gk-space-1) var(--gk-space-3);
+  border: 0;
+  border-radius: var(--gk-radius-full);
+  background: transparent;
+  color: var(--gk-text-muted);
+  font: inherit;
+  font-size: var(--gk-font-size-sm);
+  cursor: pointer;
+}
+.grok-gallery-viewtoggle button.active { background: var(--gk-accent); color: var(--gk-text-inverse); }
+.grok-gallery-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+}
+.grok-gallery-hint {
+  margin-left: auto;
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+}
+
+.grok-color-grid.wide { grid-template-columns: repeat(11, minmax(0, 26px)); justify-content: start; }
+
+.grok-gallery-strip {
+  display: flex;
+  gap: var(--gk-space-2);
+  overflow-x: auto;
+  padding-bottom: var(--gk-space-2);
+}
+.grok-gallery-thumb,
+.grok-gallery-cell {
+  flex: 0 0 auto;
+  width: 106px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-1);
+  padding: var(--gk-space-2);
+  border: 2px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.grok-gallery-thumb:hover,
+.grok-gallery-cell:hover { background: var(--gk-bg-selected); }
+.grok-gallery-thumb.selected,
+.grok-gallery-cell.selected { border-color: var(--gk-focus); background: var(--gk-bg-selected); }
+.grok-gallery-thumb-label {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  color: var(--gk-text-secondary);
+  font-size: var(--gk-font-size-xs);
+}
+.grok-gallery-thumb-label em { color: var(--gk-text-muted); font-style: normal; }
+
+.grok-gallery-wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--gk-space-2);
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: var(--gk-space-1);
+}
+.grok-gallery-wall .grok-gallery-cell { width: auto; }
+
+.grok-gallery-stage {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-3);
+  padding: var(--gk-space-4) 0;
+}
+.grok-gallery-arrow {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-raised);
+  color: var(--gk-text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+}
+.grok-gallery-arrow:hover { background: var(--gk-bg-selected); color: var(--gk-text); }
+.grok-gallery-hero {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gk-space-2);
+}
+.grok-gallery-caption {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gk-space-1);
+  max-width: 46ch;
+  text-align: center;
+}
+.grok-gallery-caption strong { font-size: var(--gk-font-size-lg); }
+.grok-gallery-caption span {
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-sm);
+  line-height: var(--gk-line-height-lg);
+}
+
+/* -------------------------------------------------- new-bot screen layout -- */
+
+.grok-onboarding-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: var(--gk-space-6);
+  width: min(1200px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: var(--gk-space-6) 0;
+  align-items: start;
+}
+.grok-onboarding-layout .grok-onboarding-form {
+  width: auto;
+  position: sticky;
+  top: var(--gk-space-6);
+  padding: var(--gk-space-4);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-surface);
+}
+.grok-onboarding-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-3);
+  padding-bottom: var(--gk-space-3);
+  border-bottom: 1px solid var(--gk-line);
+}
+.grok-onboarding-preview > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.grok-onboarding-preview strong { font-size: var(--gk-font-size-lg); }
+.grok-onboarding-actions { display: flex; justify-content: flex-end; gap: var(--gk-space-2); }
+
+@media (max-width: 1000px) {
+  .grok-onboarding-layout { grid-template-columns: minmax(0, 1fr); }
+  .grok-onboarding-layout .grok-onboarding-form { position: static; }
+  .grok-gallery-hint { margin-left: 0; width: 100%; }
+}
+/* ==========================================================================
+   DESKTOP SHELL
+   --------------------------------------------------------------------------
+   Applied only under `html.oh-desktop`, so the browser build is untouched.
+
+   The window sits on a real system backdrop - DWM Acrylic on Windows 11, an
+   NSVisualEffectView on macOS - and the layout in front of it follows the
+   arrangement Apple's own windows use, because it solves the legibility
+   problem translucency creates:
+
+     - The SIDEBARS are the glass. They are chrome: short labels, generous
+       leading, nothing to read for long. The wallpaper coming through them is
+       the whole effect.
+     - The CONTENT pane is a rounded card inset from the window edge, filled
+       more heavily and floated on the sidebars' material. Paragraphs need a
+       stable ground, and a card is what gives the eye an edge to hold.
+
+   That inset card is also the single strongest "this is a Mac window" cue
+   there is, and it is not decoration: it is where the readable text lives.
+
+   `data-oh-backdrop` carries what was ACTUALLY applied, not what the platform
+   might support. Where the request was declined - Windows 10, a Linux session
+   with no compositor - the value is `none`, none of this applies, and the
+   opaque browser tokens stay, because translucent text over an opaque grey
+   window is unreadable.
+   ========================================================================== */
+
+html.oh-desktop,
+html.oh-desktop body,
+html.oh-desktop #root {
+  background: transparent;
+}
+
+/* No font override here any more. This block used to reach for each platform's
+   own UI face, which was the right call when the interface had no font of its
+   own; now it ships Geist, and a desktop window that silently swapped to Segoe
+   UI while a browser tab rendered Geist would be two different products. */
+html.oh-desktop {
+  --oh-titlebar-height: 44px;
+  --oh-titlebar-fill: transparent;
+  /* How far the content card is inset from the window's edges. */
+  --oh-card-inset: 8px;
+  --oh-card-radius: var(--gk-radius-lg);
+  /* The 1px top highlight that makes a translucent surface read as a physical
+     pane of glass rather than a hole in the window. */
+  --oh-glass-edge: rgba(255, 255, 255, 0.14);
+}
+
+/* --- Translucent surfaces, dark --- */
+html.oh-desktop[data-oh-backdrop="acrylic"],
+html.oh-desktop[data-oh-backdrop="vibrancy"],
+html.oh-desktop[data-oh-backdrop="transparent"] {
+  /* Translucent versions of the SAME Vercel greys, not new colours. #0a0a0a
+     at 46% and at 84% are the opaque tokens with the wallpaper allowed through
+     them, so the theme reads as one palette in a window and in a tab. A
+     neutral this dark is also what keeps a warm wallpaper from dragging the
+     interface orange - a tinted grey would amplify it instead. */
+  /* 0.58, not the 0.46 this started at. Alpha is a contrast budget: the lower
+     it goes the more the user's wallpaper decides what the text sits on, and a
+     light wallpaper was lifting the sidebar to a mid-grey the muted text could
+     not survive. This is still plainly glass - the wallpaper reads through it -
+     but the ground no longer moves far enough to break the ramp below. */
+  --gk-bg-app: rgba(19, 24, 18, 0.62);
+  /* The card. High enough that body text sits on a stable ground - this is the
+     surface people actually read against. */
+  --gk-bg-transcript: rgba(10, 10, 10, 0.84);
+  --gk-bg-surface: rgba(255, 255, 255, 0.06);
+  --gk-bg-raised: rgba(26, 26, 26, 0.86);
+  --gk-bg-input: rgba(255, 255, 255, 0.06);
+  --gk-bg-hover: rgba(255, 255, 255, 0.09);
+  --gk-bg-selected: rgba(255, 255, 255, 0.14);
+  --gk-bg-bubble-assistant: rgba(255, 255, 255, 0.08);
+  --gk-bg-bubble-user: rgba(255, 255, 255, 0.16);
+  --gk-bg-overlay: rgba(0, 0, 0, 0.42);
+
+  /* Borders go translucent too. A solid #1f1f1f hairline over a bright
+     wallpaper reads as a dark line drawn ON the glass rather than an edge
+     of it. */
+  --gk-line: rgba(255, 255, 255, 0.1);
+  --gk-line-strong: rgba(255, 255, 255, 0.2);
+
+  /* The text ramp moves up a step on glass, and this is the part that is easy
+     to miss. Vercel's greys are specified against an OPAQUE #0a0a0a, where
+     #7d7d7d is a perfectly legible muted grey. Behind translucency the ground
+     is partly the user's wallpaper, so the same value can land on anything
+     from near-black to mid-grey - and over a light wallpaper the muted text
+     disappeared. Each role takes the next lighter step of the same Vercel
+     scale, which keeps the palette intact and the hierarchy readable on a
+     ground the interface does not control. */
+  --gk-text-secondary: #c9c9c9;
+  --gk-text-muted: #a1a1a1;
+
+  --gk-shadow-popover: 0 20px 56px rgba(0, 0, 0, 0.6);
+}
+
+/* --- Translucent surfaces, light --- */
+html.oh-desktop[data-theme="light"][data-oh-backdrop="acrylic"],
+html.oh-desktop[data-theme="light"][data-oh-backdrop="vibrancy"],
+html.oh-desktop[data-theme="light"][data-oh-backdrop="transparent"] {
+  --gk-bg-app: rgba(243, 242, 236, 0.78);
+  --gk-bg-transcript: rgba(250, 249, 246, 0.9);
+  --gk-bg-surface: rgba(255, 254, 250, 0.62);
+  --gk-bg-raised: rgba(255, 254, 251, 0.94);
+  --gk-bg-input: rgba(255, 254, 250, 0.8);
+  --gk-bg-hover: rgba(44, 45, 39, 0.05);
+  --gk-bg-selected: rgba(44, 45, 39, 0.07);
+  --gk-bg-bubble-assistant: rgba(255, 254, 250, 0.84);
+  --gk-bg-bubble-user: rgba(98, 107, 86, 0.1);
+  --gk-bg-overlay: rgba(44, 45, 39, 0.2);
+  --gk-line: rgba(44, 45, 39, 0.09);
+  --gk-line-strong: rgba(44, 45, 39, 0.17);
+  --gk-shadow-popover: 0 20px 56px rgba(44, 45, 39, 0.14);
+  --oh-glass-edge: rgba(255, 255, 255, 0.7);
+  /* The same correction inverted: these greys are specified against white,
+     and glass over a dark wallpaper drags the ground down under them. */
+  --gk-text-secondary: #4b4d44;
+  --gk-text-muted: #5f6158;
+}
+
+@media (prefers-color-scheme: light) {
+  html.oh-desktop:not([data-theme="dark"]):not([data-theme="light"])[data-oh-backdrop="acrylic"],
+  html.oh-desktop:not([data-theme="dark"]):not([data-theme="light"])[data-oh-backdrop="vibrancy"],
+  html.oh-desktop:not([data-theme="dark"]):not([data-theme="light"])[data-oh-backdrop="transparent"] {
+    --gk-bg-app: rgba(243, 242, 236, 0.78);
+    --gk-bg-transcript: rgba(250, 249, 246, 0.9);
+    --gk-bg-surface: rgba(255, 254, 250, 0.62);
+    --gk-bg-raised: rgba(255, 254, 251, 0.94);
+    --gk-bg-input: rgba(255, 254, 250, 0.8);
+    --gk-bg-hover: rgba(44, 45, 39, 0.05);
+    --gk-bg-selected: rgba(44, 45, 39, 0.07);
+    --gk-bg-bubble-assistant: rgba(255, 254, 250, 0.84);
+    --gk-bg-bubble-user: rgba(98, 107, 86, 0.1);
+    --gk-bg-overlay: rgba(44, 45, 39, 0.2);
+    --gk-line: rgba(44, 45, 39, 0.09);
+    --gk-line-strong: rgba(44, 45, 39, 0.17);
+    --gk-shadow-popover: 0 20px 56px rgba(44, 45, 39, 0.14);
+    --oh-glass-edge: rgba(255, 255, 255, 0.7);
+    /* The same correction inverted: these greys are specified against white,
+       and glass over a dark wallpaper drags the ground down under them. */
+    --gk-text-secondary: #4b4d44;
+    --gk-text-muted: #5f6158;
+  }
+}
+
+/* --- Unfocused/Inactive window: solid opaque surfaces (no transparency) --- */
+html.oh-desktop[data-oh-focused="false"],
+html.oh-desktop.oh-unfocused {
+  background: #131812 !important;
+  --gk-bg-app: #131812 !important;
+  --gk-bg-transcript: #0a0a0a !important;
+  --gk-bg-surface: #1a1a1a !important;
+  --gk-bg-raised: #1a1a1a !important;
+  --gk-bg-input: #1a1a1a !important;
+  --gk-bg-hover: rgba(255, 255, 255, 0.06) !important;
+  --gk-bg-selected: rgba(255, 255, 255, 0.1) !important;
+  --gk-bg-bubble-assistant: #1a1a1a !important;
+  --gk-bg-bubble-user: #222a20 !important;
+  --gk-line: rgba(255, 255, 255, 0.1) !important;
+  --gk-line-strong: rgba(255, 255, 255, 0.18) !important;
+}
+
+html.oh-desktop[data-oh-focused="false"] body,
+html.oh-desktop.oh-unfocused body,
+html.oh-desktop[data-oh-focused="false"] #root,
+html.oh-desktop.oh-unfocused #root {
+  background: #131812 !important;
+}
+
+html.oh-desktop[data-oh-focused="false"] .oh-titlebar,
+html.oh-desktop.oh-unfocused .oh-titlebar,
+html.oh-desktop[data-oh-focused="false"] .grok-sidebar,
+html.oh-desktop.oh-unfocused .grok-sidebar,
+html.oh-desktop[data-oh-focused="false"] .grok-details-pane,
+html.oh-desktop.oh-unfocused .grok-details-pane {
+  background: #131812 !important;
+}
+
+html.oh-desktop[data-oh-focused="false"] .grok-chat-pane,
+html.oh-desktop.oh-unfocused .grok-chat-pane {
+  background: #0a0a0a !important;
+}
+
+html.oh-desktop[data-oh-focused="false"] .grok-workspace-container,
+html.oh-desktop.oh-unfocused .grok-workspace-container {
+  background: #131812 !important;
+}
+
+/* Light mode unfocused */
+html.oh-desktop[data-theme="light"][data-oh-focused="false"],
+html.oh-desktop[data-theme="light"].oh-unfocused {
+  background: #f3f2ec !important;
+  --gk-bg-app: #f3f2ec !important;
+  --gk-bg-transcript: #fffefa !important;
+  --gk-bg-surface: #f3f2ec !important;
+  --gk-bg-raised: #fffefa !important;
+  /* The generic inactive-window rule above supplies the complete DARK
+     surface ramp. Override the complete ramp here too. Leaving only the four
+     large panes light meant controls which use the remaining tokens (search,
+     composer and message bubbles) turned black as soon as the window lost
+     focus. */
+  --gk-bg-input: #fffefa !important;
+  --gk-bg-hover: rgba(44, 45, 39, 0.05) !important;
+  --gk-bg-selected: #ecebe4 !important;
+  --gk-bg-bubble-assistant: #f2f1ea !important;
+  --gk-bg-bubble-user: #eceee4 !important;
+  --gk-line: #e4e3dc !important;
+  --gk-line-strong: #d2d1c7 !important;
+}
+html.oh-desktop[data-theme="light"][data-oh-focused="false"] body,
+html.oh-desktop[data-theme="light"].oh-unfocused body,
+html.oh-desktop[data-theme="light"][data-oh-focused="false"] #root,
+html.oh-desktop[data-theme="light"].oh-unfocused #root,
+html.oh-desktop[data-theme="light"][data-oh-focused="false"] .oh-titlebar,
+html.oh-desktop[data-theme="light"].oh-unfocused .oh-titlebar,
+html.oh-desktop[data-theme="light"][data-oh-focused="false"] .grok-sidebar,
+html.oh-desktop[data-theme="light"].oh-unfocused .grok-sidebar,
+html.oh-desktop[data-theme="light"][data-oh-focused="false"] .grok-details-pane,
+html.oh-desktop[data-theme="light"].oh-unfocused .grok-details-pane,
+html.oh-desktop[data-theme="light"][data-oh-focused="false"] .grok-workspace-container,
+html.oh-desktop[data-theme="light"].oh-unfocused .grok-workspace-container {
+  background: #f3f2ec !important;
+}
+html.oh-desktop[data-theme="light"][data-oh-focused="false"] .grok-chat-pane,
+html.oh-desktop[data-theme="light"].oh-unfocused .grok-chat-pane {
+  background: #fffefa !important;
+}
+
+/* --------------------------------------------------------------- layout --- */
+
+/* The workspace starts below the titlebar and lets the backdrop through. */
+html.oh-desktop .grok-workspace-container,
+html.oh-desktop .grok-onboarding,
+html.oh-desktop .grok-first-run {
+  top: var(--oh-titlebar-height);
+}
+html.oh-desktop .grok-workspace-container {
+  background: transparent;
+}
+
+/* Cortex / Galaxy floating chrome starts below the desktop titlebar */
+html.oh-desktop .hud-left,
+html.oh-desktop .hud-right {
+  top: calc(var(--oh-titlebar-height) + 14px);
+}
+
+html.oh-desktop .hint,
+html.oh-desktop .error {
+  top: calc(var(--oh-titlebar-height) + 58px);
+}
+
+html.oh-desktop .drawer {
+  top: var(--oh-titlebar-height);
+}
+
+html.oh-desktop .drawer.config {
+  top: calc(var(--oh-titlebar-height) + 56px);
+}
+
+html.oh-desktop .focus {
+  top: calc(var(--oh-titlebar-height) + 56px);
+}
+
+html.oh-desktop .drawer.config ~ .focus {
+  top: calc(var(--oh-titlebar-height) + 300px);
+}
+
+/* NO `backdrop-filter` on these panes, deliberately.
+   DWM composites its material BELOW the Chromium surface, so a CSS
+   backdrop-filter here has nothing of the desktop to sample: it costs a
+   render pass and changes nothing. The blur is the system's job. Layered
+   surfaces further down DO use it, because there the backdrop is page
+   content the compositor really can see. */
+html.oh-desktop .grok-sidebar {
+  background: var(--gk-bg-app);
+  border-right: 1px solid var(--gk-line);
+}
+html.oh-desktop .grok-details-pane {
+  background: var(--gk-bg-app);
+  border-left: 1px solid var(--gk-line);
+}
+
+/* Continuous, seamless layout linking sidebar and chat without floating card margins or gap */
+html.oh-desktop .grok-chat-pane {
+  position: relative;
+  margin: 0;
+  border-radius: 0;
+  background: var(--gk-bg-transcript);
+  box-shadow: none;
+  overflow: hidden;
+}
+/* The card's own header keeps the pane's fill rather than the window's, or a
+   scrolled transcript would appear to slide out from under a hole. */
+html.oh-desktop .grok-chat-header {
+  padding-left: var(--gk-space-3-5);
+  padding-right: var(--gk-space-3-5);
+}
+
+/* The composer sits inside the card, so it needs no shadow of its own. */
+html.oh-desktop .grok-input-capsule {
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+
+/* Layered surfaces get a real blur, because what is behind them IS page
+   content: glass over glass rather than flat panels floating on it. */
+html.oh-desktop .grok-popover,
+html.oh-desktop .grok-marketplace-modal,
+html.oh-desktop .grok-settings-modal,
+html.oh-desktop .grok-search-dialog,
+html.oh-desktop .grok-template-dialog,
+html.oh-desktop .grok-confirm-dialog,
+html.oh-desktop .grok-computer-fullscreen,
+html.oh-desktop .grok-toast {
+  backdrop-filter: blur(30px) saturate(1.6);
+  border-color: var(--gk-line-strong);
+  box-shadow:
+    inset 0 1px 0 var(--oh-glass-edge),
+    var(--gk-shadow-popover);
+}
+html.oh-desktop .grok-modal-overlay {
+  backdrop-filter: blur(3px);
+}
+
+/* Coss popups need the same glass, and did not have it.
+
+   A Coss component paints its floating surface with Tailwind's `bg-popover`,
+   which resolves through the bridge in tailwind.css to `--gk-bg-raised` - the
+   same token every panel here uses, and on the desktop that token is
+   rgba(26,26,26,0.86). Translucent by design, and unreadable without the blur
+   the rule above gives our own popovers: a dropdown opened over the workspace
+   showed the toggle and the colour swatches behind it crisply through the list,
+   which is what made the options look washed out and half-legible.
+
+   The blur has to go on the element that actually carries the background. In
+   the select that is a div INSIDE `[data-slot=select-popup]` - the popup itself
+   is a transparent, square-cornered wrapper, so blurring that instead would put
+   a rectangle of blur behind a rounded panel and show its corners.
+
+   Scoped to `[data-slot$='-popup']` rather than to `.bg-popover` alone, because
+   Coss uses that same class for ordinary outline BUTTONS, and giving every one
+   of those a 30px backdrop blur would be both wrong and expensive. The suffix
+   match covers select and toast, which is what this app mounts today, and menu,
+   popover and tooltip if any of them are ever brought in. */
+html.oh-desktop [data-slot$='-popup'].bg-popover,
+html.oh-desktop [data-slot$='-popup'] .bg-popover {
+  backdrop-filter: blur(30px) saturate(1.6);
+}
+
+/* Floating select popups and menus must be opaque so underlying controls, labels, and swatches do not bleed through */
+[data-slot$='-popup'] .bg-popover,
+[data-slot$='-popup'].bg-popover,
+.grok-popover {
+  background-color: #1a1a1a !important;
+}
+html[data-theme='light'] [data-slot$='-popup'] .bg-popover,
+html[data-theme='light'] [data-slot$='-popup'].bg-popover,
+html[data-theme='light'] .grok-popover {
+  background-color: #fffefa !important;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme='dark']) [data-slot$='-popup'] .bg-popover,
+  html:not([data-theme='dark']) [data-slot$='-popup'].bg-popover,
+  html:not([data-theme='dark']) .grok-popover {
+    background-color: #fffefa !important;
+  }
+}
+
+
+/* ------------------------------------------------------- native feel ----
+   The difference between an app and a web page in a frame is mostly made of
+   things nobody notices individually.
+
+   THE HAND CURSOR is the loudest of them. `cursor: pointer` means "this is a
+   hyperlink" and the web uses it for every control; no native toolbar button
+   on any desktop platform shows a hand. One property, and the whole interface
+   stops announcing that it is a document.
+
+   TEXT SELECTION is the second. Dragging across a native sidebar selects
+   nothing, because a sidebar is furniture. Dragging across a web one selects
+   the labels like prose, and once you have seen it you cannot unsee it. So:
+   nothing is selectable by default here, and the places where selection is
+   the POINT - message text, code, inputs, a webhook URL to copy - opt back in
+   explicitly.
+
+   Both are scoped to `html.oh-desktop`. In a browser tab the web conventions
+   are the correct ones, and this stylesheet serves both.
+   ------------------------------------------------------------------------ */
+
+html.oh-desktop,
+html.oh-desktop button,
+html.oh-desktop [role='button'],
+html.oh-desktop [role='menuitem'],
+html.oh-desktop [role='option'],
+html.oh-desktop [role='tab'],
+html.oh-desktop label,
+html.oh-desktop summary,
+html.oh-desktop a,
+html.oh-desktop select,
+html.oh-desktop .grok-agent-row,
+html.oh-desktop .grok-icon-btn,
+html.oh-desktop .grok-primary-btn,
+html.oh-desktop .grok-secondary-btn,
+html.oh-desktop .grok-danger-btn,
+html.oh-desktop .oh-window-btn,
+html.oh-desktop .oh-daemon-pill {
+  cursor: default;
+}
+
+/* A disabled control still says so. */
+html.oh-desktop button:disabled,
+html.oh-desktop [role='button'][aria-disabled='true'] {
+  cursor: default;
+}
+
+/* Text entry keeps the I-beam - that one IS the native affordance. */
+html.oh-desktop input,
+html.oh-desktop textarea,
+html.oh-desktop [contenteditable='true'] {
+  cursor: text;
+}
+
+/* Resize handles and sliders keep their own. */
+html.oh-desktop input[type='range'] { cursor: ew-resize; }
+html.oh-desktop input[type='color'] { cursor: default; }
+
+html.oh-desktop {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Where selection is the point. Message bodies, anything monospaced the user
+   might need to copy, and every text field. */
+html.oh-desktop .grok-bubble,
+html.oh-desktop .grok-md,
+html.oh-desktop code,
+html.oh-desktop pre,
+html.oh-desktop .grok-webhook-url,
+html.oh-desktop .oh-daemon-panel pre,
+html.oh-desktop input,
+html.oh-desktop textarea,
+html.oh-desktop [contenteditable='true'] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* The selection highlight follows the theme rather than the browser's blue. */
+html.oh-desktop ::selection {
+  background: color-mix(in srgb, var(--gk-focus) 38%, transparent);
+  color: var(--gk-text);
+}
+
+/* ------------------------------------------------------------- titlebar -- */
+
+.oh-titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--oh-titlebar-height);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--gk-space-2) 0 var(--gk-space-3);
+  font-family: var(--gk-font-sans);
+  color: var(--gk-text-muted);
+  /* The toolbar carries the SAME fill as the sidebars, and for a reason beyond
+     looking continuous with them: a bare titlebar sits directly on the system
+     material, whose luminance depends on the user's wallpaper. Dark text over
+     it fails on a dark wallpaper and light text fails on a light one, and no
+     amount of text-shadow fixes both. Tinting it puts a known ground under the
+     title and the window buttons, so the theme's own text colours are correct
+     again - which is exactly why a Mac toolbar is part of the window material
+     rather than a hole in it. */
+  background: var(--gk-bg-app);
+  border-bottom: 1px solid var(--gk-line);
+}
+html.oh-desktop[data-oh-backdrop="none"] .oh-titlebar {
+  background: transparent;
+}
+/* Traffic lights are drawn by macOS at x=18; leave them room. */
+.oh-titlebar.mac {
+  padding-left: 84px;
+}
+
+.oh-drag {
+  position: absolute;
+  inset: 0;
+  -webkit-app-region: drag;
+}
+
+.oh-titlebar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.oh-title {
+  font-size: var(--gk-font-size-sm);
+  font-weight: var(--gk-weight-semibold);
+  letter-spacing: 0.01em;
+  color: var(--gk-text-secondary);
+}
+
+.oh-titlebar-right {
+  position: relative;
+  z-index: 1;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  -webkit-app-region: no-drag;
+}
+
+/* Same reasoning as the title: this pill sits directly on the wallpaper, so it
+   carries its own ground instead of trusting whatever is behind it. */
+.oh-daemon-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gk-space-1-5);
+  padding: 4px var(--gk-space-2-5);
+  border: 1px solid var(--gk-line);
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-bg-surface);
+  color: var(--gk-text-secondary);
+  font: inherit;
+  font-size: var(--gk-font-size-xs);
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .oh-daemon-pill { transition: none; }
+}
+.oh-daemon-pill:hover {
+  background: var(--gk-bg-hover);
+  color: var(--gk-text);
+}
+.oh-daemon-pill.failed {
+  color: var(--gk-danger);
+  border-color: var(--gk-danger);
+}
+
+.oh-daemon-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--gk-radius-full);
+  background: var(--gk-text-muted);
+  flex: 0 0 auto;
+}
+.oh-daemon-dot.running,
+.oh-daemon-dot.attached {
+  background: var(--gk-ok);
+}
+.oh-daemon-dot.checking,
+.oh-daemon-dot.starting {
+  background: var(--gk-warn);
+}
+.oh-daemon-dot.failed {
+  background: var(--gk-danger);
+}
+
+.oh-window-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.oh-window-btn {
+  width: 34px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--gk-radius-base);
+  background: transparent;
+  color: var(--gk-text-secondary);
+  cursor: pointer;
+}
+.oh-window-btn:hover {
+  background: var(--gk-bg-hover);
+  color: var(--gk-text);
+}
+.oh-window-btn.danger:hover {
+  background: #e5484d;
+  color: #fff;
+}
+
+/* -------------------------------------------------------- daemon panel --- */
+
+.oh-daemon-panel {
+  position: fixed;
+  top: calc(var(--oh-titlebar-height) + var(--gk-space-1));
+  right: var(--gk-space-3);
+  z-index: 490;
+  width: min(560px, calc(100vw - 32px));
+  max-height: 46vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gk-line-strong);
+  border-radius: var(--gk-radius-xl);
+  background: var(--gk-bg-raised);
+  backdrop-filter: blur(30px) saturate(1.6);
+  box-shadow:
+    inset 0 1px 0 var(--oh-glass-edge),
+    var(--gk-shadow-popover);
+  overflow: hidden;
+  font-family: var(--gk-font-sans);
+}
+.oh-daemon-panel header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gk-space-3);
+  padding: var(--gk-space-3) var(--gk-space-3-5);
+  border-bottom: 1px solid var(--gk-line);
+}
+.oh-daemon-panel header > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.oh-daemon-panel strong {
+  font-size: var(--gk-font-size-base);
+  color: var(--gk-text);
+}
+.oh-daemon-panel header span {
+  color: var(--gk-text-muted);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+}
+.oh-daemon-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gk-space-2);
+  flex: 0 0 auto;
+}
+.oh-daemon-actions .grok-secondary-btn {
+  padding: var(--gk-space-1) var(--gk-space-2-5);
+  font-size: var(--gk-font-size-sm);
+}
+.oh-daemon-panel pre {
+  margin: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--gk-space-3) var(--gk-space-3-5);
+  color: var(--gk-text-secondary);
+  font-family: var(--gk-font-mono);
+  font-size: var(--gk-font-size-xs);
+  line-height: var(--gk-line-height-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The trait swatch in the legacy fleet sidebar. Replaces a U+25CF bullet that
+   used to stand in for a colour: a circle drawn in CSS is the same size on
+   every machine, and shows the colour instead of naming it twice. */
+.trait-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-inline-end: 5px;
+  border-radius: var(--gk-radius-full);
+  border: 1px solid var(--gk-line);
+  vertical-align: baseline;
+}
+
+/* ------------------------------------------------------- uiverse ----
+   Uiverse.io elements (MIT), retheme only.
+
+   The vendored CSS under src/registry/uiverse/ is the authors' work kept
+   byte-for-byte apart from scoping, which means it also keeps the colours they
+   wrote: white borders, `greenyellow` dots, a fully saturated blue. Those are
+   the only thing that cannot come along - this palette is Vercel's greys, and a
+   neon dot in the middle of it reads as a rendering fault rather than a
+   flourish.
+
+   So the colour is corrected HERE rather than in the vendored file, for the
+   same reason the Coss components are not edited in place: re-running the
+   vendor script must stay a copy and a diff, not a merge against changes
+   nobody wrote down.
+   -------------------------------------------------------------------- */
+
+/* The orbit loader's colour is one HSL pair, which is all it takes. Greyscale
+   at the saturation the author's own `--l` lightness steps expect. */
+.uiv-orbit-loader figure > * {
+  --hs: 0 0%;
+  background-color: var(--gk-text-secondary);
+}
+.uiv-orbit-loader {
+  display: grid;
+  place-items: center;
+  color: var(--gk-text-secondary);
+}
+
+/* The ring loader arrives white-bordered with `greenyellow` dots. */
+.uiv-ring-loader .loader {
+  width: 18px;
+  height: 18px;
+  border-color: var(--gk-line-strong);
+  border-top-color: var(--gk-text);
+}
+.uiv-ring-loader .loader::before,
+.uiv-ring-loader .loader::after {
+  background: var(--gk-text-secondary);
+  width: 3px;
+  height: 3px;
+}
+
+/* The pulse loader is three bars built out of `linear-gradient()` literals, so
+   there is no single property to recolour - the whole background has to be
+   restated. The construction is the author's, at this app's colour and at a
+   size that sits on a text line rather than the 45x40 a standalone page had
+   room for. The ASPECT RATIO is the part that matters: the bars travel through
+   a 400% background, so squashing the height hides them for most of the cycle -
+   a first attempt at 22x14 showed a single dot and nothing else. `inline-block` because it is rendered as a <span> inside a
+   sentence, and width does nothing to an inline box. */
+.uiv-pulse-loader .loader {
+  display: inline-block;
+  width: 26px;
+  height: 20px;
+  background:
+    linear-gradient(#0000 calc(1 * 100% / 6), var(--gk-text-secondary) 0 calc(3 * 100% / 6), #0000 0),
+    linear-gradient(#0000 calc(2 * 100% / 6), var(--gk-text-secondary) 0 calc(4 * 100% / 6), #0000 0),
+    linear-gradient(#0000 calc(3 * 100% / 6), var(--gk-text-secondary) 0 calc(5 * 100% / 6), #0000 0);
+  background-size: 7px 400%;
+  background-repeat: no-repeat;
+}
+.uiv-ring-loader,
+.uiv-pulse-loader {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+.uiv-orbit-loader { line-height: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The setting says no motion, and a borrowed element is not an exception. */
+  .uiv-orbit-loader *,
+  .uiv-ring-loader *,
+  .uiv-pulse-loader * {
+    animation: none !important;
+  }
+}
+
+/* Coss's Table is a real <table>, and this app does not load preflight.
+
+   Its default (non-card) variant never sets `border-collapse` - it assumes
+   preflight has already set `collapse`, as Tailwind's reset does. Without it
+   the browser default `separate` applies with 2px of cell spacing, which puts
+   a gap between every cell and stops the `border-b` row rules from collapsing
+   into single hairlines. Found by auditing which in-use Coss components render
+   elements preflight resets, rather than by noticing a 2px gap by eye.
+
+   Scoped to the slot so the markdown tables in the transcript, which have their
+   own rules, are untouched. */
+[data-slot='table'] {
+  border-collapse: collapse;
+}
+
+/* Coss's sidebar renders real lists, and this app does not load preflight.
+
+   `SidebarMenu` is a <ul> and `SidebarMenuItem` an <li>. Every Coss component
+   is written assuming Tailwind's reset has already removed list markers and
+   padding - tailwind.css explains why that reset is deliberately not imported
+   here, and warns that the cost is paid per component when one is brought in.
+   This is that cost: without these three lines every bot in the sidebar got a
+   bullet point and an indent. */
+.grok-sidebar [data-slot='sidebar-menu'],
+.grok-sidebar [data-slot='sidebar-menu-item'] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.grok-artifact-download { color: var(--gk-focus); cursor: pointer; text-decoration: underline; background: transparent; border: 0; font: inherit; }
+
+/* ------------------------------------------------------- bot system panel --
+   Missions, memory and cleanup, as collapsible cards. Every surface and line
+   here comes from the tokens: this block used to set `option { background:
+   #fff }` and hard-coded grey hairlines, which is how white option lists and
+   pale borders ended up inside the dark theme.
+   -------------------------------------------------------------------------- */
+.grok-system-panel { display: flex; flex-direction: column; gap: 10px; padding: 16px 0 4px; font-size: 12px; line-height: 1.65; color: var(--gk-text-secondary); overflow-wrap: anywhere; }
+.grok-system-panel > p { margin: 0; }
+.grok-system-panel details { border: 1px solid var(--gk-line); border-radius: 12px; background: var(--gk-bg-surface); transition: border-color 200ms ease, background-color 200ms ease; }
+.grok-system-panel details:hover, .grok-system-panel details[open] { border-color: var(--gk-line-strong); }
+.grok-system-panel details[open] { background: var(--gk-bg-raised); }
+.grok-system-panel summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; list-style: none; border-radius: 12px; color: var(--gk-text); font-size: 12.5px; font-weight: 550; cursor: pointer; }
+.grok-system-panel summary::-webkit-details-marker { display: none; }
+.grok-system-panel summary::after { content: ''; width: 6px; height: 6px; margin-right: 3px; border: solid var(--gk-text-muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translateY(-2px); transition: transform 240ms cubic-bezier(.22, 1, .36, 1); }
+.grok-system-panel details[open] > summary::after { transform: rotate(-135deg) translateY(-1px); }
+.grok-system-panel details > :not(summary) { margin: 0 14px 12px; }
+.grok-system-panel details p { margin-top: 0; }
+.grok-system-panel form, .grok-system-panel details > div { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.grok-system-panel label { display: flex; flex-direction: column; gap: 6px; color: var(--gk-text-muted); font-size: 11px; font-weight: 500; }
+.grok-system-panel input, .grok-system-panel textarea, .grok-system-panel select { box-sizing: border-box; width: 100%; padding: 8px 11px; border: 1px solid var(--gk-line-strong); border-radius: 9px; background-color: var(--gk-bg-input); color: var(--gk-text); font: inherit; font-size: 12px; transition: border-color 160ms ease, box-shadow 160ms ease; }
+.grok-system-panel textarea { min-height: 72px; resize: vertical; line-height: 1.6; }
+.grok-system-panel :is(input, textarea, select):hover { border-color: var(--gk-text-muted); }
+.grok-system-panel :is(input, textarea, select):focus { outline: none; border-color: var(--gk-focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gk-focus) 18%, transparent); }
+.grok-system-panel option { background: var(--gk-bg-raised); color: var(--gk-text); }
+.grok-system-panel button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 30px; margin: 0 6px 0 0; padding: 6px 12px; border: 1px solid var(--gk-line-strong); border-radius: 8px; background: var(--gk-bg-surface); color: var(--gk-text); font: inherit; font-size: 11.5px; font-weight: 500; cursor: pointer; transition: background-color 160ms ease, border-color 160ms ease, opacity 160ms ease, transform 160ms ease; }
+.grok-system-panel button:hover:not(:disabled) { background: var(--gk-bg-hover); border-color: var(--gk-text-muted); }
+.grok-system-panel button:active:not(:disabled) { transform: scale(.97); }
+.grok-system-panel form > button { align-self: flex-start; border-color: transparent; background: var(--gk-accent); color: var(--gk-text-inverse); }
+.grok-system-panel form > button:hover:not(:disabled) { border-color: transparent; background: var(--gk-accent); opacity: .86; }
+.grok-system-panel button:disabled { opacity: .45; cursor: not-allowed; }
+.grok-system-panel details > div > button { align-self: flex-start; }
+.grok-system-panel article { display: flex; flex-direction: column; gap: 4px; padding: 11px 12px; border: 1px solid var(--gk-line); border-radius: 10px; background: var(--gk-bg-surface); }
+.grok-system-panel article h4 { margin: 0; color: var(--gk-text); font-size: 12.5px; font-weight: 550; }
+.grok-system-panel article p { margin: 0; }
+.grok-system-panel small { color: var(--gk-text-muted); font-size: 10.5px; }
+.grok-system-panel [role=status] { margin: 0; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--gk-ok) 35%, transparent); border-radius: 9px; background: color-mix(in srgb, var(--gk-ok) 10%, transparent); color: var(--gk-ok); }
+.grok-system-panel [role=alert] { margin: 0; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--gk-danger) 35%, transparent); border-radius: 9px; background: color-mix(in srgb, var(--gk-danger) 10%, transparent); color: var(--gk-danger); }
+@media (prefers-reduced-motion: no-preference) {
+  .grok-system-panel details[open] > :not(summary) { animation: oh-unfold 260ms cubic-bezier(.22, 1, .36, 1); }
+}
+@keyframes oh-unfold { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* An account a bot asked for, entered in its card (GrokQuestionCard). */
+.grok-account-form { display: grid; gap: 8px; margin-top: 10px; }
+.grok-account-error { margin: 0; color: var(--gk-danger); font-size: 12px; }

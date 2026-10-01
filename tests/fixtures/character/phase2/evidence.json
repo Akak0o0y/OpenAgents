@@ -1,0 +1,4 @@
+{
+  "statusPage": "- main:\n  - article:\n    - heading \"Milo\" [level=3]\n    - text: \"Milo's latest update on the release status and test suite.\"\n    - link \"10:00 AM · Sep 25, 2026\" [url=\"/u3/status/123456789\"]\n  - article:\n    - heading \"Reply from user\" [level=3]\n    - text: \"Looks great!\"",
+  "timeline": "- main:\n  - heading \"Home Timeline\" [level=1]\n  - article:\n    - heading \"User A\" [level=3]\n    - text: \"Check out this post: /u3/status/123456789\"\n    - link \"View post\" [url=\"/u3/status/123456789\"]\n  - article:\n    - heading \"User B\" [level=3]\n    - text: \"Good morning everyone!\""
+}

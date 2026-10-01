@@ -1,0 +1,39 @@
+{
+  "schema": "openhours.character-off-case/1",
+  "id": "opencode.opencode.executor.supplied",
+  "seam": "opencode",
+  "scenario": "opencode.executor",
+  "description": "supplied",
+  "logicalCalls": 1,
+  "requests": [
+    {
+      "kind": "opencode-session",
+      "command": "opencode run --format json --pure --auto -m 'openrouter/claude-haiku-4-5' 'Saved description fixture: you are Milo, a careful release assistant.\nKeep answers short and cite \"checked\" sources — never guess.\n\nTask: cli-arg-parser\n\nYou are working in /workspace. These files already exist:\n  - package.json\n  - test/parser.test.js\n\nGoal: make this command exit 0 -> npm test\n\nRules:\n  - Work only inside /workspace.\n  - Edit files directly with your tools. Do not print a patch and stop.\n  - The project uses ES modules (\"type\": \"module\"). Use named ES exports.\n  - Do NOT modify the test files (package.json, test/parser.test.js). They are restored before grading, so editing them cannot help you.\n\nImplement the solution, run the test command yourself, and iterate until it passes.'",
+      "image": "openhours/opencode-agent:1.18.28",
+      "network": "bridge",
+      "timeoutMs": 900000,
+      "secretNames": [
+        "OPENROUTER_API_KEY"
+      ],
+      "signal": "[AbortSignal]"
+    }
+  ],
+  "promptAssembled": [
+    {
+      "source": "agent",
+      "promptChars": 705,
+      "executor": "opencode"
+    }
+  ],
+  "eventTypes": [
+    "TASK_STARTED",
+    "PROMPT_ASSEMBLED",
+    "OPENCODE_SESSION",
+    "PROTECTED_FILES_RESTAGED",
+    "TURN_COMPLETED",
+    "TASK_COMPLETED"
+  ],
+  "opencode": {
+    "builderPrompt": "Saved description fixture: you are Milo, a careful release assistant.\nKeep answers short and cite \"checked\" sources — never guess.\n\nTask: cli-arg-parser\n\nYou are working in /workspace. These files already exist:\n  - package.json\n  - test/parser.test.js\n\nGoal: make this command exit 0 -> npm test\n\nRules:\n  - Work only inside /workspace.\n  - Edit files directly with your tools. Do not print a patch and stop.\n  - The project uses ES modules (\"type\": \"module\"). Use named ES exports.\n  - Do NOT modify the test files (package.json, test/parser.test.js). They are restored before grading, so editing them cannot help you.\n\nImplement the solution, run the test command yourself, and iterate until it passes."
+  }
+}

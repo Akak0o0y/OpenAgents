@@ -1,0 +1,24 @@
+import {useEffect,useState} from 'react';
+import {getJson,postJson} from '../lib/transport.js';
+export function CharacterMemory({agentId,version,onSaved}:{agentId:string;version:number;onSaved:()=>void}) {
+  const [claims,setClaims]=useState<any[]>([]),[error,setError]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
+  const [cursor,setCursor]=useState<string|null>(null),[query,setQuery]=useState(''),[occurrences,setOccurrences]=useState<Record<string,any[]>>({}),[originals,setOriginals]=useState<{id:string;text:string}[]>([]),[restore,setRestore]=useState<{sourceId:string;before:string;after:string;expectedCurrentSha256:string}|null>(null);
+  useEffect(()=>{const c=new AbortController();setOccurrences({});setRestore(null);setError('');getJson<{items:any[];nextCursor:string|null}>(`/api/system/character-claims?agent=${encodeURIComponent(agentId)}&query=${encodeURIComponent(query)}`,c.signal).then(v=>{setClaims(v.items);setCursor(v.nextCursor);}).catch(e=>{if(!c.signal.aborted)setError(e.message);});
+    getJson<{items:{id:string;text:string}[]}>(`/api/system/character-original-descriptions?agent=${encodeURIComponent(agentId)}`,c.signal).then(v=>setOriginals(v.items)).catch(e=>{if(!c.signal.aborted)setError(e.message);});return()=>c.abort();},[agentId,version,query]);
+  async function load(path:string,apply:(data:any)=>void){setBusy(true);setError('');try{apply(await getJson<any>(path));}catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}}
+  async function action(path:string,body:object){setBusy(true);setError('');try{const result=await postJson<any>('/api/system/'+path,{agentId,...body});setNotice(result.keptUnresolved!==undefined?`${result.removed} records removed; ${result.keptUnresolved} unresolved posts retained.`:result.count!==undefined?`${result.count} own posts read.`:'Saved.');if(path==='character-claims')setClaims(v=>v.filter(c=>c.id!==(body as any).id));onSaved();}catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}}
+  return <section><h3>What this bot has said</h3><p>Recorded assertions are provisional until you adopt them. Delivery proof does not establish that an assertion is true.</p>
+    <label>Search assertions<input value={query} maxLength={400} onChange={e=>setQuery(e.target.value)}/></label>
+    <button disabled={busy} onClick={()=>action('character-import-posts',{})}>Import own post samples</button>
+    <button disabled={busy} onClick={()=>action('character-read-engagement',{})}>Read engagement now</button>
+    {claims.map(c=><article key={c.id}><p>{c.subject} {c.predicate} {c.value}</p><small>{c.status} · {c.count} recorded occurrences</small>
+      <button disabled={busy} onClick={()=>action('character-claims',{id:c.id,action:'adopt',baseVersion:version,provenance:'owner-attested'})}>Adopt as owner-attested</button>
+      <button disabled={busy} onClick={()=>action('character-claims',{id:c.id,action:'dismiss'})}>Dismiss</button></article>)}
+    {claims.map(c=><details key={`occ-${c.id}`}><summary onClick={()=>{if(!occurrences[c.id])void load(`/api/system/character-claims?agent=${encodeURIComponent(agentId)}&id=${encodeURIComponent(c.id)}`,v=>setOccurrences(o=>({...o,[c.id]:v.items})));}}>Occurrences of {c.subject} {c.predicate}</summary>{occurrences[c.id]?.map((o,i)=><blockquote key={i}>{o.text}<small> · {new Date(o.created_at).toLocaleString()}</small></blockquote>)}</details>)}
+    {cursor&&<button disabled={busy} onClick={()=>void load(`/api/system/character-claims?agent=${encodeURIComponent(agentId)}&query=${encodeURIComponent(query)}&cursor=${encodeURIComponent(cursor)}`,v=>{setClaims(c=>[...c,...v.items]);setCursor(v.nextCursor);})}>Load more assertions</button>}
+    {!claims.length&&<p>No retained assertions.</p>}
+    <details><summary>Delete eligible history</summary><p>Unresolved effects and evidence supporting adopted or disputed facts are retained.</p><button disabled={busy} onClick={()=>action('character-delete-history',{})}>Delete eligible history</button></details>
+    {originals.length>0&&<details><summary>Restore an original Description</summary>{originals.map(s=><button key={s.id} disabled={busy} onClick={()=>void load(`/api/system/character-description-restore?agent=${encodeURIComponent(agentId)}&sourceId=${encodeURIComponent(s.id)}`,setRestore)}>Compare original: {s.text.slice(0,80)}</button>)}{restore&&<><h4>Current Description</h4><pre style={{whiteSpace:'pre-wrap'}}>{restore.before}</pre><h4>Original Description</h4><pre style={{whiteSpace:'pre-wrap'}}>{restore.after}</pre><button disabled={busy} onClick={()=>void action('character-description-restore',{sourceId:restore.sourceId,expectedCurrentSha256:restore.expectedCurrentSha256}).then(()=>setRestore(null))}>Restore this original Description</button></>}</details>}
+    {notice&&<p role="status">{notice}</p>}{error&&<p role="alert">{error}</p>}
+  </section>;
+}

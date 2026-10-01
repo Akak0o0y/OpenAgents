@@ -1,0 +1,54 @@
+{
+  "schema": "openhours.character-off-case/1",
+  "id": "legacy-chat.legacy-chat.no-memory.supplied",
+  "seam": "legacy-chat",
+  "scenario": "legacy-chat.no-memory",
+  "description": "supplied",
+  "logicalCalls": 1,
+  "requests": [
+    {
+      "kind": "llm",
+      "connection": null,
+      "maxTokens": 1024,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Earlier question fixture: what changed in the release?"
+        },
+        {
+          "role": "assistant",
+          "content": "Earlier answer fixture: nothing was checked yet."
+        },
+        {
+          "role": "user",
+          "content": "Can you check the release note and tell me what changed?"
+        }
+      ],
+      "modelId": "claude-haiku-4-5",
+      "onProviderEvent": "[function]",
+      "onStream": null,
+      "parallel_tool_calls": null,
+      "signal": "[AbortSignal]",
+      "stream": null,
+      "systemPrompt": "Saved description fixture: you are Milo, a careful release assistant.\nKeep answers short and cite \"checked\" sources — never guess.",
+      "temperature": null,
+      "tools": null,
+      "userPrompt": "Can you check the release note and tell me what changed?"
+    }
+  ],
+  "promptAssembled": [
+    {
+      "source": "agent",
+      "promptChars": 130,
+      "executor": "chat"
+    }
+  ],
+  "eventTypes": [
+    "TASK_STARTED",
+    "PROMPT_ASSEMBLED",
+    "HISTORY_APPENDED",
+    "CHAT_REPLY",
+    "TASK_COMPLETED"
+  ],
+  "opencode": null
+}

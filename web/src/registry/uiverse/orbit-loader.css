@@ -1,0 +1,83 @@
+/* Vendored from Uiverse.io (MIT). Do not hand-edit - re-run
+ * scripts/vendor-uiverse.mjs instead.
+ *
+ * Source:  https://raw.githubusercontent.com/uiverse-io/galaxy/main/loaders/VashonG_spicy-crab-68.html
+ * Author:  VashonG
+ * Twelve diamonds on a rotating ring. Colour is one HSL pair, so it themes cleanly.
+ *
+ * Selectors are prefixed with .uiv-orbit-loader and keyframes with "orbit-loader-";
+ * everything else is the author's, unchanged.
+ */
+
+/* From Uiverse.io by VashonG - Tags: blue, loader, diamond */
+@media (prefers-reduced-motion) {
+}.uiv-orbit-loader figure {
+  --size: 15vmin;
+  --duration: 4s;
+  --direction: 1;
+  --pull: -1.25;
+  perspective: 30rem;
+  display: grid;
+  grid-template-areas: "figure";
+  place-items: center;
+  inline-size: var(--size);
+  aspect-ratio: 1;
+  animation: orbit-loader-spin var(--duration) ease-in-out infinite;
+}
+.uiv-orbit-loader figure > * {
+  --radius: calc(var(--size) / 2);
+  --deg: calc(var(--i) * (360deg / 12));
+  --hs: 225 100%;
+  --transform-start: translate3d(
+      calc(cos(var(--deg)) * var(--radius)),
+      calc(sin(var(--deg)) * var(--radius)),
+      0
+    )
+    rotate(calc(var(--deg)));
+  grid-area: figure;
+  background-color: hsl(var(--hs) var(--l, 60%));
+  inline-size: calc(var(--size) / 4);
+  aspect-ratio: 1;
+  clip-path: polygon(25% 25%, 100% 50%, 25% 75%, 0% 50%);
+  transform: var(--transform-start);
+  transform-style: preserve-3d;
+  animation: orbit-loader-diamonds var(--duration) cubic-bezier(0.87, 0, 0.13, 1) infinite;
+}
+.uiv-orbit-loader figure:nth-child(2) {
+  --size: 30vmin;
+  --direction: -1;
+  --l: 70%;
+}
+.uiv-orbit-loader figure:nth-child(3) {
+  --size: 55vmin;
+  --pull: -1.125;
+  --l: 80%;
+}
+@keyframes orbit-loader-spin {
+  0%,
+  25% {
+    transform: scaleX(var(--direction)) rotate(0);
+  }
+
+  75%,
+  100% {
+    transform: scaleX(var(--direction)) rotate(1turn);
+  }
+}
+@keyframes orbit-loader-diamonds {
+  0%,
+  20% {
+    transform: var(--transform-start);
+  }
+
+  50% {
+    clip-path: polygon(75% 25%, 100% 50%, 75% 75%, 0% 50%);
+    transform: translate3d(
+        calc(cos(var(--deg)) * var(--radius) * var(--pull)),
+        calc(sin(var(--deg)) * var(--radius) * var(--pull)),
+        5rem
+      )
+      rotate(calc(var(--deg) + 90deg));
+  }
+}
+

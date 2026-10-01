@@ -1,0 +1,289 @@
+{
+  "schema": "openhours.character-off-baseline/1",
+  "baselineCommit": "c3615e2cf5b0e04731bb1f94565bb7f84a454dd6",
+  "sourceHashAlgorithm": "sha256 of UTF-8 text after CRLF and lone CR are normalized to LF",
+  "sources": {
+    "src/cortex/galaxy.ts": "77dfee504b006c469cab94100e407f4aaf9603aed0a966d545b3554f354665b1",
+    "src/cortex/layer-view.ts": "18f342426de847173bf9572ad54a1187cbebd1d2f52c6c8c7f8ed6865e2c04ae",
+    "src/cortex/run-steps.ts": "73b97ac2ff2174d7594548674e3ae7cca2d8e178acfa05fcf9036c03257ab3de",
+    "src/daemon/activity-digest.ts": "5d643723216b53d6608eea72fe15417a6987f39b635a09f37d4038a06f2d71f2",
+    "src/daemon/agent-loop.ts": "0694331fc7dcc58d4048d1ebf9490b6e80308657dd29c7e5a4036608f361291f",
+    "src/daemon/agent-store.ts": "cdf9084caf2d433669da0612d5ead12d3434499cea2feff40e5aeabea3dcf2eb",
+    "src/daemon/artifacts.ts": "51a963e589ac2d4deacd0c582246b542243d59e7e847a19dd37b067354cba488",
+    "src/daemon/attachment-worker.ts": "580a98d0c54f8c7af21e6681a6b6cd674c84821347cbb34fd9b0f67e0216ba83",
+    "src/daemon/attachments.ts": "086b9559df1fcfe59a410b1f4f28b8b2876739af8dfbd4f062524020cca63aad",
+    "src/daemon/background-tasks.ts": "7383e3ae30a19d8da2c417ad12dd0e04a3e6074a195a424f582d515018aab62c",
+    "src/daemon/bot-desktop.ts": "2ef285ce7ce83ae7e95be0c219d123941c581ebc1dbcddad16bf4dacd23e829c",
+    "src/daemon/browser-accounts.ts": "7357cc00c6138796de70d1d92f6f73852a6cf067201ca99a9d9626ca5ace090a",
+    "src/daemon/browser-egress.ts": "8bb484f6a11a7dad1cd3db9ba94e5a80f789f9e4105bd5d4a2cd1c09072b5ee5",
+    "src/daemon/browser-login.ts": "a53291e18ffef948e83c675ff81e2af81ef5c61082fbe952c624005dc898373c",
+    "src/daemon/browser-publish.ts": "0a2afa9c6bbef1d5c2a823ec60ce2548a59ba6ae227771e0aa414087b1578952",
+    "src/daemon/browser-sandbox.ts": "05cda0b1f126045c0fa21fc1757e0f450e6e62ee42dae093dcf63068bb3a6566",
+    "src/daemon/browser-tools.ts": "f42c5a3d05422a272ceb371b7c9dc1271abd95b89412b01de1fd77f9dcd9f412",
+    "src/daemon/build-identity.ts": "f8870b125b279b7718f661905b8d7e72d4f66e28ca66f12ffc75ee5d75757d3f",
+    "src/daemon/chat.ts": "64d370c17d85b74866809da7a8e3fd9e2fdd16ab32b9ef24432f06ee9b371eea",
+    "src/daemon/composite-producer.ts": "77014ed1c1ddb9a859541edd807ca17b99f363e8eb32adace9e109fc8772bd47",
+    "src/daemon/computer-actions.ts": "0ac5b384cc100303affc041a4e7661bb68c2008b20afbfabd531c07c69215750",
+    "src/daemon/config-file.ts": "3de3efb127a46298e70c1d44640585a90784cc628aed9defbc7d40865e291746",
+    "src/daemon/config.ts": "74a052c5524056a42fc1488d8bac19dfec5b210ea3623cafeff72eed8265b018",
+    "src/daemon/connect-page.ts": "d5c61843f13c720a9f228c6466675452ba472d2cca07aad45770947ec7565ea8",
+    "src/daemon/console-page.ts": "149c1f754576b6572e98a43af0c322082fdd7d16245f49b2ea384cb037b00cb0",
+    "src/daemon/context-budget.ts": "a2fdc20d90c706da4ad1025ecae1cfc6ad2a3b43036538694d267e8aba023bd1",
+    "src/daemon/control-plane.ts": "4bab5e2c361cb01b64ebce527444953ccb70af83329e9906f758ce6c24ac69fa",
+    "src/daemon/cron.ts": "619acb9c910bc5f6d6d3507fe10d983bd77e674150b903c44b37010a42ca34ec",
+    "src/daemon/db/schema.ts": "2f75b04b6d2f765475ddfa07d59c279e2a7b033fd668c465502deab527163d6e",
+    "src/daemon/deliverable-checks.ts": "908d414a17455b9cd9507f5e65913d08708938c90044c628d327c20c41922258",
+    "src/daemon/desktop-viewer.ts": "e8042bbe015ce507036282c8ea598d2484b61d0b06707e2ef93541523d92d050",
+    "src/daemon/docker-status.ts": "34ea5dce4ffd1bbdbcc793b476ced8230cb0be06ef95bfe101e598e6b70b6c94",
+    "src/daemon/document-tools.ts": "53a52a0cca3531cd63002c40ea620f3e013d227ed8b5b1ad3a368e11f029ec0f",
+    "src/daemon/external-effects.ts": "f5d73e10f8ff3ee00a170a34ea0a2282a51886eb8b3913fc51ece873cf1784ae",
+    "src/daemon/failure-recovery.ts": "95ff0800e44f59d39ddb43a7f25f0d46ce3a14cafe5e0832777b4092f6223458",
+    "src/daemon/goal-producer.ts": "f6893651e3e08a75b176fa87aa989a329a317a1ba807117f6145c66f887e3d26",
+    "src/daemon/index.ts": "850831e7308401ea534989e3889194fddb040d5dff4184cc2484e2b786643a6a",
+    "src/daemon/internal-data.ts": "e2ba9c511e041336c9f680c1035dc78791617a8384928cfdd3182533c26619cd",
+    "src/daemon/live-stream.ts": "8ea1fbff94fdf55c6c43d486aa21631c25926130b3cd84aeba1d7e32d312971d",
+    "src/daemon/local-auth.ts": "9be86578975837870fb6692ff088036fe11f76bcf10f5294a6931ab22e7f12a8",
+    "src/daemon/local-gateway.ts": "6e8ada34c99d51f62bf910e9cc7422e462409fea13370c064177c6e1cc208551",
+    "src/daemon/local-usage-cache.ts": "ff2a21387272630727c61730bb70e36c362403d3f5f355a149d86e7b67a24a57",
+    "src/daemon/local-usage-worker.ts": "1fbb12dcd546a6a058548c5d020384cfd128d14f0dec8c40ef0917238466f0df",
+    "src/daemon/local-usage.ts": "d7aac9aa34ffcc04551a558f4becb55695e39028dbf692566eff88535a3ab849",
+    "src/daemon/mcp-registry.ts": "84b379cd79003dfac3e216571313b9e6429309c8a91b8c537b73d427d6ade68f",
+    "src/daemon/memory.ts": "e05ad7bf96db0b41a2340ac804cb98e656966c2c3e358ce5de109a8a38b9bb1a",
+    "src/daemon/missions.ts": "855ea38ff204ef97f7536f18fe7ff4ff4be27d291d1e9021ed9ca1cc9bf57b3e",
+    "src/daemon/ocr.ts": "9c7843a09f4e907fbf0b756f03cd459bfc7b299d1542d518b0fbaec44d6b68ee",
+    "src/daemon/opencode-executor.ts": "7f1474850ea7077791eb1b00d17463616a1e31fefac837ab38462ce06663eb93",
+    "src/daemon/opencode-smoke.ts": "09340edeac77051bb498ec621d7db1e2c92dd28e41bfc92ab3df6aa3f5f47d30",
+    "src/daemon/plugin-registry.ts": "c70d11e99505240f27e4864a3b8bc3c13d8000e190eb38dfe091462db83270b9",
+    "src/daemon/proposal-preflight.ts": "af54d36517372621127a6da621f88efb9d631bd272b3f244d9df8f54901f697d",
+    "src/daemon/provider-connections.ts": "eb2fce2cb4bac717811ef4acf9cbee20574247dea1723cbc508bc02fdd936bc7",
+    "src/daemon/provider-router.ts": "325a0b0b202de900cbd9c18f9cdc4c53d758d93ecaad59b9faed68424251a7ae",
+    "src/daemon/publish-policy.ts": "0ba608a0ba2008f497c53e1ac99ce11c7b74557b3d93123b71aaf5fc2d00331d",
+    "src/daemon/publish-probes.ts": "344f82f4ac8f2a24f60c602faf0d6c5011cdc7241c6dc96286e3911db741fd39",
+    "src/daemon/repeat-guard.ts": "70342a2d701abdd440fb1b18d9ce091d1ec1dc3a1f20d33a95e0903e551abb3f",
+    "src/daemon/repository-publication.ts": "3065e0760f6f3695b76229f9280c066ac85f2bd30c559fd263322fadffe74d79",
+    "src/daemon/repository-snapshot.ts": "93f4650610583cb4e57b868d55eed4380e6077d0f1393ec5e2ef06583f822840",
+    "src/daemon/repository-work.ts": "99dcd404e9917cd4b7e4c08e8d39b71bd647c67b86c73c99521d3bfe9fab10dd",
+    "src/daemon/retention.ts": "c8bfc7f14ef1ee864d81cd2fe3b641f557652be09992d045774587326157cb8a",
+    "src/daemon/routine-dispatch.ts": "a1e25303b1df906ae253dc380142c69f5dc4f03c8099839803b01d7374f90dfa",
+    "src/daemon/routine-producer.ts": "3c7c0c28a6c31994e153238f59d6abfae4bc23fae8c9a2d792e5eab3fea38e26",
+    "src/daemon/routine-task.ts": "9570d1068d138a1f8be128559ea2b62943513d03eabc13fb0af614b175bf1c14",
+    "src/daemon/run-capacity.ts": "db127ae265fa91d20564dd2a79376a6f05db9e78da96ef1f30b28d1861b92a71",
+    "src/daemon/scheduler.ts": "5f0197c75d7844c787974e79e570d3ff0865efcaed35214c6d0900598103d196",
+    "src/daemon/screen-text.ts": "1902c3d2a5cb73244220c60df9e13c675871df984469a9e9c29792006cc93c83",
+    "src/daemon/search.ts": "f3f809806f614acb4a06a5b44c24884aa4a420d9e703a234515f662cb4311bdf",
+    "src/daemon/secret-store.ts": "d7d5205794875082e6590a7ffc753fdccb97f939633c3ed6a4ff08f4d7d36f75",
+    "src/daemon/spreadsheet-formulas.ts": "36da04233ce929f1354824eec370942fb77c9110218ef0053bcc1eb0959b2b83",
+    "src/daemon/system-api.ts": "50cdcd13b8fd1753e6599ef16254fa1d879e9aa1f33515b1f2cb039fff506e6c",
+    "src/daemon/task-input.ts": "74e539aefc7e82a01ccc2ca562ab9a0634051f30dc3a988c78c7fbdf0c3ff9b5",
+    "src/daemon/text-diff.ts": "bf34ec2b7d93b57441930e7dbe894794780be21da5511ebd28d47ecd9fbdd496",
+    "src/daemon/tool-mode.ts": "e59bbb745d201573bdd4e03ab2c247efdb086ef714fa2952ced6001ff07100a9",
+    "src/daemon/tool-schemas.ts": "f5e4dfc94dad6237a7d404fdd68d80ce8f8873f87b2491cb4129cad83707f0c5",
+    "src/daemon/usage.ts": "7e4d78699522a6ed3a7ef2db32eb2273a035164ee4f826b56ba37e859bfd5f7c",
+    "src/daemon/web-research.ts": "bb2e129776cde3c3fa4c1456d78e69d67660fc8b9a3d1e160e8369fcb9b4aa0e",
+    "src/daemon/work-actions.ts": "35b7a5b1ef7d87857c965871600e7b2a5b8b8c00f19cb3cf642e886da9d6a840",
+    "src/daemon/work-checkpoints.ts": "be7e6cf4cde279c628df1fe998db71bfd6b3cf9c44a5378c00b7dabd4877c2ca",
+    "src/daemon/work-contract.ts": "46a89d36a226a136df52d7e868c64bdc48bda404c0a947ac7c346a562d26c645",
+    "src/daemon/work-producer.ts": "223928e4a66ee130aa852d7f8b7b87fab10a0bbd1c56254c0ac8ac3751c59784",
+    "src/daemon/work-questions.ts": "fbac474627b365f1b8240b9a4bfe782d875f5dcc29554fb8e4d14f6fcb5f08e0",
+    "src/daemon/work-results.ts": "9af9cacb9c136634c0fd506d0a2a389a24d4f7a1401f79e2a6076d3a25fac8b6",
+    "src/daemon/work-runtime.ts": "8d3ca30e631cbc288cbf07bdb670bdfd987a0e4f4781ccdddf0501264630d6f6",
+    "src/daemon/workspace-guidance.ts": "eacf00bbc77cec1103687bc7d86a1b2855dadaa995922ccc1a010e4ced8e37ee",
+    "src/daemon/ws-server.ts": "978b0b101985d9f884156001ceb8d64a69dcb8753821d84dbfdefc257a3d82ef",
+    "src/evals/llm-client.ts": "69221a825bac541fdad0fe9b46aba9a36ead22d6e9a5eb13ddded16a21076d81",
+    "src/evals/llm/anthropic-messages.ts": "ddb327c7b1cd419307b3a0c3009d7ed9a3639a37f83adc062a2bfbcd2eb53807",
+    "src/evals/llm/chat-completions.ts": "e92316ff42ecf2e8de39f89cf42b0ec629f696aaa85aee0fa570cad8063ac2e8",
+    "src/evals/llm/sse.ts": "41ceac76199ed0cb4f9cfc7d9ab389b1e1659bb05b47be50f4a60f818cb4abb9",
+    "src/evals/llm/stream.ts": "df6591e04daabd2de6e0c48df612f1e4048759ff440e25716e5c88c7be0a52a5",
+    "src/evals/run-traces.ts": "80f5b31497050a29fc744499698cf55e311a802b41adde11a156c77796f4b9a4",
+    "src/evals/trace-runner.ts": "d5097a140728bc13c95c9a4d7607a2e0762cd1bf8a3233a32c2a3155359872b3",
+    "src/evals/types.ts": "896d998b04c990d7547c4d49f83c51bc0208018558bf6c282553219b8f5029b3",
+    "src/kernel/agent-layers.ts": "2e0be8be6e200042b35cc26da9f0e5afbaa211512be20a84785ad3e7f925da56",
+    "src/kernel/cost-ledger.ts": "b678a08b3a07013519514a3c56644f9d1581e1bb1af7ab6d871e2cfebe6ba5eb",
+    "src/kernel/docker-host.ts": "a8daa08ebcb4c47e858e3ac9bc7be5cfbe621f2e36b2ce412a9e4b289f68c771",
+    "src/kernel/docker-sandbox.ts": "cbba46314b3b69872496d0c60c041cdcc69152bc1b90508fc943a015d7a59d0d",
+    "src/kernel/index.ts": "71118db97ea916dc26f2d865775e38084ac05aadf848f84deb6b8555995ffa5b",
+    "src/kernel/mcp-client.ts": "a77577b1543c71855bf8d6ffd5980514a4cbaef0912245728b91fe0d575f053b",
+    "src/kernel/standing-tenant.ts": "c16d2bdbf407de89d9325bc47631d8fa909c1150a98d98f82ff1f393dacc0ea8",
+    "src/kernel/thrash-detector.ts": "400716e9638a43090ab4aa05af224813c2602863a43c53862e6de0f7562ed32e",
+    "src/kernel/types.ts": "6a65f4459c2778b9dee644f753343c0f22cfe13fd5bf7b37ce08a7f7bdcf7577"
+  },
+  "normalization": [
+    {
+      "id": "work-runtime-observed-at",
+      "seam": "work-runtime",
+      "field": "requests[*].systemPrompt: the runtime snapshot's \"observedAt\" ISO-8601 value",
+      "description": "new Date().toISOString() inside buildSystemPrompt (work-runtime.ts:455), masked by spec §17.1. Only the exact \"observedAt\":\"YYYY-MM-DDTHH:MM:SS.sssZ\" form is replaced."
+    }
+  ],
+  "caseCount": 42,
+  "cases": [
+    {
+      "id": "work-runtime.owner-chat.chat-service.full.native.missing",
+      "file": "work-runtime.owner-chat.chat-service.full.native.missing.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.chat-service.full.native.empty",
+      "file": "work-runtime.owner-chat.chat-service.full.native.empty.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.chat-service.full.native.supplied",
+      "file": "work-runtime.owner-chat.chat-service.full.native.supplied.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.chat-service.minimal.native.missing",
+      "file": "work-runtime.owner-chat.chat-service.minimal.native.missing.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.chat-service.minimal.native.empty",
+      "file": "work-runtime.owner-chat.chat-service.minimal.native.empty.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.chat-service.minimal.native.supplied",
+      "file": "work-runtime.owner-chat.chat-service.minimal.native.supplied.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.chat-service.full.json.missing",
+      "file": "work-runtime.owner-chat.chat-service.full.json.missing.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.chat-service.full.json.empty",
+      "file": "work-runtime.owner-chat.chat-service.full.json.empty.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.chat-service.full.json.supplied",
+      "file": "work-runtime.owner-chat.chat-service.full.json.supplied.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.initial-messages.full.native.missing",
+      "file": "work-runtime.owner-chat.initial-messages.full.native.missing.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.initial-messages.full.native.empty",
+      "file": "work-runtime.owner-chat.initial-messages.full.native.empty.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.initial-messages.full.native.supplied",
+      "file": "work-runtime.owner-chat.initial-messages.full.native.supplied.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.tool-history.full.native.missing",
+      "file": "work-runtime.owner-chat.tool-history.full.native.missing.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.tool-history.full.native.empty",
+      "file": "work-runtime.owner-chat.tool-history.full.native.empty.json"
+    },
+    {
+      "id": "work-runtime.owner-chat.tool-history.full.native.supplied",
+      "file": "work-runtime.owner-chat.tool-history.full.native.supplied.json"
+    },
+    {
+      "id": "work-runtime.routine.scheduled.full.native.missing",
+      "file": "work-runtime.routine.scheduled.full.native.missing.json"
+    },
+    {
+      "id": "work-runtime.routine.scheduled.full.native.empty",
+      "file": "work-runtime.routine.scheduled.full.native.empty.json"
+    },
+    {
+      "id": "work-runtime.routine.scheduled.full.native.supplied",
+      "file": "work-runtime.routine.scheduled.full.native.supplied.json"
+    },
+    {
+      "id": "work-runtime.mission.produced.full.native.missing",
+      "file": "work-runtime.mission.produced.full.native.missing.json"
+    },
+    {
+      "id": "work-runtime.mission.produced.full.native.empty",
+      "file": "work-runtime.mission.produced.full.native.empty.json"
+    },
+    {
+      "id": "work-runtime.mission.produced.full.native.supplied",
+      "file": "work-runtime.mission.produced.full.native.supplied.json"
+    },
+    {
+      "id": "work-runtime.code.direct-work.full.native.missing",
+      "file": "work-runtime.code.direct-work.full.native.missing.json"
+    },
+    {
+      "id": "work-runtime.code.direct-work.full.native.empty",
+      "file": "work-runtime.code.direct-work.full.native.empty.json"
+    },
+    {
+      "id": "work-runtime.code.direct-work.full.native.supplied",
+      "file": "work-runtime.code.direct-work.full.native.supplied.json"
+    },
+    {
+      "id": "work-runtime.delegated.self.full.native.missing",
+      "file": "work-runtime.delegated.self.full.native.missing.json"
+    },
+    {
+      "id": "work-runtime.delegated.self.full.native.empty",
+      "file": "work-runtime.delegated.self.full.native.empty.json"
+    },
+    {
+      "id": "work-runtime.delegated.self.full.native.supplied",
+      "file": "work-runtime.delegated.self.full.native.supplied.json"
+    },
+    {
+      "id": "work-runtime.background.started.full.native.missing",
+      "file": "work-runtime.background.started.full.native.missing.json"
+    },
+    {
+      "id": "work-runtime.background.started.full.native.empty",
+      "file": "work-runtime.background.started.full.native.empty.json"
+    },
+    {
+      "id": "work-runtime.background.started.full.native.supplied",
+      "file": "work-runtime.background.started.full.native.supplied.json"
+    },
+    {
+      "id": "legacy-chat.legacy-chat.memory.missing",
+      "file": "legacy-chat.legacy-chat.memory.missing.json"
+    },
+    {
+      "id": "legacy-chat.legacy-chat.memory.empty",
+      "file": "legacy-chat.legacy-chat.memory.empty.json"
+    },
+    {
+      "id": "legacy-chat.legacy-chat.memory.supplied",
+      "file": "legacy-chat.legacy-chat.memory.supplied.json"
+    },
+    {
+      "id": "legacy-chat.legacy-chat.no-memory.missing",
+      "file": "legacy-chat.legacy-chat.no-memory.missing.json"
+    },
+    {
+      "id": "legacy-chat.legacy-chat.no-memory.empty",
+      "file": "legacy-chat.legacy-chat.no-memory.empty.json"
+    },
+    {
+      "id": "legacy-chat.legacy-chat.no-memory.supplied",
+      "file": "legacy-chat.legacy-chat.no-memory.supplied.json"
+    },
+    {
+      "id": "agent-loop.agent-loop.builtin.missing",
+      "file": "agent-loop.agent-loop.builtin.missing.json"
+    },
+    {
+      "id": "agent-loop.agent-loop.builtin.empty",
+      "file": "agent-loop.agent-loop.builtin.empty.json"
+    },
+    {
+      "id": "agent-loop.agent-loop.builtin.supplied",
+      "file": "agent-loop.agent-loop.builtin.supplied.json"
+    },
+    {
+      "id": "opencode.opencode.executor.missing",
+      "file": "opencode.opencode.executor.missing.json"
+    },
+    {
+      "id": "opencode.opencode.executor.empty",
+      "file": "opencode.opencode.executor.empty.json"
+    },
+    {
+      "id": "opencode.opencode.executor.supplied",
+      "file": "opencode.opencode.executor.supplied.json"
+    }
+  ]
+}

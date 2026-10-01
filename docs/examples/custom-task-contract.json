@@ -1,0 +1,21 @@
+{
+  "id": "custom-total",
+  "kind": "code",
+  "name": "Repair a supplied total function",
+  "description": "Repair the supplied module and satisfy the original acceptance checks.",
+  "requirements": [
+    "Return the sum of a numeric array, including an empty array and negative numbers.",
+    "Do not mutate the supplied array."
+  ],
+  "initialFiles": {
+    "package.json": "{\"type\":\"module\"}",
+    "src/total.js": "export function total(values) { return 0; }\n",
+    "checks.test.js": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { total } from './src/total.js';\ntest('sum contract', () => {\n  assert.equal(total([]), 0);\n  assert.equal(total([2, 3, 4]), 9);\n  assert.equal(total([-3, 1]), -2);\n  const input = [4, 2]; total(input); assert.deepEqual(input, [4, 2]);\n});\n"
+  },
+  "writableFiles": [
+    "src/total.js"
+  ],
+  "testCommand": "node --test checks.test.js",
+  "maxTurns": 24,
+  "timeoutMs": 180000
+}

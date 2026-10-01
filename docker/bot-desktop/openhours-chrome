@@ -1,0 +1,24 @@
+#!/bin/bash
+# The only supported way to start Chrome on this desktop.
+#
+# A bare `google-chrome-stable` - from the Applications menu, a .desktop file or
+# a shell - would create a second profile with no proxy, so its traffic would
+# leave the container unfiltered and its logins would not be the bot's. Every
+# entry point is pointed here instead.
+set -euo pipefail
+profile="$HOME/chrome-profile"
+mkdir -p "$profile"
+# Sign-in runs without the debugging port so no automation client can read the
+# page while a human types a password. Everything else stays automatable.
+debug=(--remote-debugging-port=9222 --remote-debugging-address=127.0.0.1)
+if [[ "${OPENHOURS_CHROME_HUMAN:-0}" == "1" ]]; then debug=(); fi
+exec /usr/bin/google-chrome-stable \
+  "${debug[@]}" \
+  --user-data-dir="$profile" \
+  --no-first-run \
+  --no-default-browser-check \
+  --start-maximized \
+  --proxy-server=http://127.0.0.1:3128 \
+  --proxy-bypass-list='<-loopback>' \
+  --force-webrtc-ip-handling-policy=disable_non_proxied_udp \
+  "$@"

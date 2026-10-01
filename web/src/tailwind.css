@@ -1,0 +1,272 @@
+/*
+ * Tailwind, wired to this app's own design tokens.
+ *
+ * WHY THIS FILE EXISTS. Coss UI's components are styled with Tailwind, so using
+ * them means having Tailwind. But the decision was Coss's COMPONENTS wearing
+ * this app's theme, not Cal.com's visual design replacing it - so Tailwind is
+ * set up to resolve its colour, font and radius names against the `--gk-*`
+ * tokens that already exist. A Coss component that says `bg-background` then
+ * paints OpenAgents' background, not Cal.com's, and it keeps doing so when the
+ * theme switches to light because the token underneath it does.
+ *
+ * PREFLIGHT IS DELIBERATELY NOT IMPORTED, and this is the load-bearing part.
+ * Tailwind's base layer is an opinionated reset: it unstyles every heading,
+ * list, button and input on the page. Dropping it into an app with 3,400 lines
+ * of existing CSS would silently flatten the entire interface - the bullets in
+ * rendered Markdown, the form controls rebuilt in the last change, the message
+ * bubbles. `@layer theme, components, utilities` below imports everything
+ * EXCEPT `preflight`, so Tailwind contributes utilities and takes nothing away.
+ *
+ * The consequence, stated so it is not a surprise: Coss components assume
+ * preflight has run. Where one of them relies on the reset - a `<button>` with
+ * no background of its own, say - it needs that written explicitly when it is
+ * brought in. That is the price of not resetting a working interface, and it is
+ * paid per component rather than all at once.
+ */
+
+/*
+ * Layer order, and it is load-bearing.
+ *
+ * UNLAYERED CSS BEATS LAYERED CSS, whatever the specificity. With theme.css
+ * outside any layer, its rules won against every Tailwind utility - including a
+ * bare `button { background: var(--panel); border-radius: 4px }` inherited from
+ * the older galaxy stylesheet, which quietly repainted every Coss control in a
+ * colour from a palette this app no longer uses. Specificity never entered into
+ * it; an element selector was beating a class because one was layered and the
+ * other was not.
+ *
+ * So theme.css is imported INTO a layer here, ordered before `utilities`. The
+ * app's own styles then behave normally among themselves, and Tailwind
+ * utilities get the last word - which is what utilities are for, and the only
+ * arrangement in which a vendored component styled entirely with them can look
+ * the way it was written.
+ *
+ * Nothing in this app's own components uses Tailwind classes, so `utilities`
+ * winning affects Coss components and nothing else.
+ *
+ * `base` (Tailwind's preflight) is declared but never imported - see below.
+ */
+@layer theme, base, app, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+/* Uiverse elements go into the SAME layer, and before theme.css.
+ *
+ * Imported from Uiverse.tsx with a plain `import '...css'` they land UNLAYERED,
+ * and unlayered CSS beats layered CSS whatever the specificity - the same rule
+ * that made the old galaxy stylesheet win against Tailwind utilities. The
+ * effect was quiet: the elements rendered, the scoping worked, and every colour
+ * override in theme.css was ignored, so a neon blue loader sat in the middle of
+ * a greyscale interface. Ordered here, the retheme is a normal same-layer
+ * override decided by source order. */
+@import './registry/uiverse/orbit-loader.css' layer(app);
+@import './registry/uiverse/pulse-loader.css' layer(app);
+@import './registry/uiverse/ring-loader.css' layer(app);
+@import './theme.css' layer(app);
+@import './workspace-design.css' layer(app);
+@import './cortex-design.css' layer(app);
+@import './constellation.css' layer(app);
+@import './settings-design.css' layer(app);
+@import './appearance.css' layer(app);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/*
+ * Where Tailwind's names resolve to.
+ *
+ * `--color-background` makes `bg-background` work; `--radius-lg` makes
+ * `rounded-lg` work. Each one points at a `--gk-*` token rather than a literal,
+ * so there is exactly one definition of "the app's surface colour" and this
+ * file is a translation table, not a second palette.
+ */
+/*
+ * `@theme`, NOT `@theme inline`.
+ *
+ * `inline` substitutes a token's value directly into the utilities that use it
+ * and emits no custom property. That is smaller, and it breaks Coss: their
+ * components reference the variables by hand in arbitrary values - the button
+ * has `before:rounded-[calc(var(--radius-lg)-1px)]` - and `var(--radius-lg)`
+ * resolves to nothing if the property was never emitted. Plain `@theme` emits
+ * `--radius-lg: var(--gk-radius-lg)`, which still resolves through to this
+ * app's token and still follows the theme, because CSS variables are resolved
+ * where they are used rather than where they are declared.
+ */
+@theme {
+  /* Surfaces */
+  --color-background: var(--gk-bg-app);
+  --color-surface: var(--gk-bg-surface);
+  --color-card: var(--gk-bg-raised);
+  --color-popover: var(--gk-bg-raised);
+  --color-input: var(--gk-bg-input);
+  --color-muted: var(--gk-bg-hover);
+  --color-accent: var(--gk-bg-selected);
+
+  /* Text */
+  --color-foreground: var(--gk-text);
+  --color-muted-foreground: var(--gk-text-muted);
+  --color-secondary-foreground: var(--gk-text-secondary);
+  --color-card-foreground: var(--gk-text);
+  --color-popover-foreground: var(--gk-text);
+  --color-accent-foreground: var(--gk-text);
+
+  /* Lines and focus */
+  --color-border: var(--gk-line);
+  --color-border-strong: var(--gk-line-strong);
+  --color-ring: var(--gk-focus);
+
+  /* Meaning. `primary` is monochrome here because Vercel's primary action is a
+     white button on black, not a blue one - see the palette notes in
+     theme.css. */
+  --color-primary: var(--gk-accent);
+  --color-primary-foreground: var(--gk-text-inverse);
+  --color-destructive: var(--gk-danger);
+  --color-destructive-foreground: #ffffff;
+  --color-success: var(--gk-ok);
+  --color-warning: var(--gk-warn);
+
+  /* The rest of the names Coss actually asks for, added when more of its
+     components were brought in.
+
+     A MISSING NAME IS INVISIBLE, not an error. Tailwind emits a utility only
+     for tokens that exist, so `bg-secondary` against an undefined
+     `--color-secondary` produces no rule at all and the element paints
+     nothing - which is precisely how a dropdown ended up transparent earlier.
+     These were found by listing every colour utility the vendored components
+     reference and diffing it against this block, rather than by waiting for
+     each one to show up as a surface with no background.
+
+     `info` has no `--gk-` equivalent because this palette had no informational
+     colour: Vercel's blue is reserved for focus and selection. It points at
+     the focus blue rather than inventing a second one, which keeps the palette
+     at the size it was designed to be. */
+  /* The sidebar family, which Coss treats as its own small palette so a
+     sidebar can be a different shade from the page. This app does not do that -
+     the sidebar is the same glass as everything else - so these point at the
+     ordinary tokens rather than introducing a second surface colour that would
+     then have to be maintained. Without them `text-sidebar-foreground` on the
+     section labels resolved to nothing and the labels inherited whatever was
+     around them. */
+  --color-sidebar: var(--gk-bg-surface);
+  --color-sidebar-foreground: var(--gk-text-secondary);
+  --color-sidebar-accent: var(--gk-bg-hover);
+  --color-sidebar-accent-foreground: var(--gk-text);
+  --color-sidebar-border: var(--gk-line);
+  --color-sidebar-ring: var(--gk-focus);
+
+  --color-secondary: var(--gk-bg-surface);
+  --color-info: var(--gk-focus);
+  --color-info-foreground: var(--gk-focus);
+  --color-success-foreground: var(--gk-ok);
+  --color-warning-foreground: var(--gk-warn);
+
+  /* Animations Coss NAMES but does not ship.
+     `animate-skeleton` and the four `animate-toast-*` utilities appear in the
+     vendored components, and nothing defines them - not the registry payload,
+     not `@coss/style`, which turns out to carry no animation tokens at all.
+     They live in Cal.com's own Tailwind config, which is not published.
+     Tailwind then emits no rule, so the skeleton was a static grey box and a
+     re-fired toast did not react. Same silent class of failure as a missing
+     colour, found the same way: by listing the utilities the components use
+     and checking each one resolves.
+     Defined here rather than patched into the vendored files, so those stay a
+     straight copy of the registry. */
+  --animate-skeleton: oh-skeleton 1.6s linear infinite;
+  --animate-toast-success-odd: oh-toast-nudge 0.4s ease-out;
+  --animate-toast-success-even: oh-toast-nudge 0.4s ease-out;
+  --animate-toast-error-odd: oh-toast-shake 0.4s ease-out;
+  --animate-toast-error-even: oh-toast-shake 0.4s ease-out;
+
+  /* Type. One family, so a Coss component cannot introduce a second. */
+  --font-sans: var(--gk-font-sans);
+  --font-mono: var(--gk-font-mono);
+
+  --text-xs: var(--gk-font-size-xs);
+  --text-sm: var(--gk-font-size-sm);
+  --text-base: var(--gk-font-size-base);
+  --text-lg: var(--gk-font-size-lg);
+
+  /* Shape. The Google-derived scale from theme.css, so a Coss card and an
+     OpenAgents card have the same corners. */
+  --radius-xs: var(--gk-radius-xs);
+  --radius-sm: var(--gk-radius-sm);
+  --radius-md: var(--gk-radius-base);
+  --radius-lg: var(--gk-radius-lg);
+  --radius-xl: var(--gk-radius-xl);
+  --radius-2xl: var(--gk-radius-2xl);
+  --radius-full: var(--gk-radius-full);
+
+  /* Spacing steps that already exist, so a Coss `p-3` and a `--gk-space-3`
+     agree rather than being two systems 2px apart. */
+  --spacing-1: var(--gk-space-1);
+  --spacing-2: var(--gk-space-2);
+  --spacing-3: var(--gk-space-3);
+  --spacing-4: var(--gk-space-4);
+  --spacing-5: var(--gk-space-5);
+  --spacing-6: var(--gk-space-6);
+}
+
+/*
+ * `dark:` must mean what THIS app means by dark.
+ *
+ * Coss components carry `dark:` variants - `dark:bg-input/32`,
+ * `dark:before:shadow-[...]` - and Tailwind's default `dark:` is
+ * `@media (prefers-color-scheme: dark)`. This app does not work that way: an
+ * explicit choice sets `data-theme` on the root and only the absence of that
+ * attribute falls back to the OS preference (see applyTheme in
+ * lib/preferences.ts, and the desktop shell's override in lib/desktop.ts).
+ *
+ * Left at the default, every Coss component would render its dark styling
+ * against the OPERATING SYSTEM while the rest of the interface rendered against
+ * the user's choice - so picking Light on a dark machine would give light panes
+ * with dark Coss controls inside them. This redefinition mirrors exactly the
+ * three cases theme.css already handles.
+ */
+@custom-variant dark {
+  /* Explicitly dark. */
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  /* Following the system, and the system is dark. `:not([data-theme='light'])`
+     is what stops an explicit Light choice from being overridden here. */
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * The dark/light switch is already handled.
+ *
+ * `--gk-*` tokens are redefined under `[data-theme]` and `prefers-color-scheme`
+ * in theme.css, and everything above points at them - so Tailwind's utilities
+ * follow the theme with no `dark:` variants and no second set of definitions.
+ * A Coss component themed this way switches when the app does, without knowing
+ * the app has themes.
+ */
+
+/* The keyframes for the tokens above.
+ *
+ * The skeleton's background is a 200%-wide gradient laid over the muted
+ * colour, so the shimmer is a background-position sweep rather than an opacity
+ * pulse - that is how the component is built, and animating opacity instead
+ * would fight it.
+ *
+ * The toast pair are deliberately small. They fire when an ALREADY VISIBLE
+ * toast is updated, which is a "look again" signal, not an entrance.
+ */
+@keyframes oh-skeleton {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes oh-toast-nudge {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-3px); }
+}
+@keyframes oh-toast-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='skeleton'],
+  [data-slot='toast-popup'] { animation: none !important; }
+}

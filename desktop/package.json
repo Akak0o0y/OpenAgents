@@ -1,0 +1,20 @@
+{
+  "name": "openagents-desktop",
+  "private": true,
+  "version": "0.6.1",
+  "description": "OpenAgents desktop shell",
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "dev": "node src/launch.mjs --dev",
+    "start": "node src/launch.mjs",
+    "dist": "electron-builder --config electron-builder.yml --win",
+    "dist:dir": "electron-builder --config electron-builder.yml --win --dir",
+    "icon": "node scripts/make-icon.mjs"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3"
+  }
+}

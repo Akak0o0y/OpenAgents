@@ -1,0 +1,45 @@
+{
+  "executor": "builtin",
+  "repositories": { "local": {}, "github": [] },
+  "visionModels": [],
+  "agents": [
+    {
+      "id": "alpha",
+      "name": "Alpha",
+      "role": "Backend engineer. Prefers small, pure functions and exhaustive edge-case tests.",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "budgetUsd": 10,
+      "mcpServers": [],
+      "delegateTo": [],
+      "requiresApproval": false
+    },
+    {
+      "id": "beta",
+      "name": "Beta",
+      "role": "Careful reviewer. Works only on tasks a human has approved first.",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "budgetUsd": 2.5,
+      "mcpServers": [],
+      "requiresApproval": true
+    }
+  ],
+  "mcpServers": [],
+  "routines": [
+    {
+      "id": "daily-plan",
+      "agentId": "alpha",
+      "name": "Daily plan",
+      "schedule": "every day at 9 am",
+      "timezone": "UTC",
+      "prompt": "Review supplied context and recalled notes. Propose a short daily plan with completion conditions. List missing information and do not invent deadlines.",
+      "taskName": "work:action-plan",
+      "enabled": false,
+      "catchUpPolicy": "skip"
+    }
+  ],
+  "scheduler": {
+    "cadenceMs": 30000,
+    "maxConcurrency": 1
+  },
+  "contracts": []
+}

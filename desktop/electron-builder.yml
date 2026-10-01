@@ -1,0 +1,186 @@
+# Packaging for OpenAgents.
+#
+# The package includes its Node runtime; no separate Node.js or npm is needed.
+# Docker is prepared separately from daemon startup. The daemon runs on Electron's
+# own Node runtime (see desktop/src/daemon.mjs), the interface is served from
+# inside the application directory, and the database is written to the user's own data
+# directory.
+#
+# THE LAYOUT IS DELIBERATE. `files` copies the repository's structure into the
+# application directory rather than flattening it, because the daemon already locates the
+# built interface three levels up from its own compiled module. Preserving the
+# layout means that code is correct in an installed app with no change and no
+# packaging-only branch - the kind of branch that only ever breaks in the build
+# nobody runs locally.
+
+# The installer and upgrade are keyed by appId, so it keeps its pre-0.6.0 name: a new
+# one would install OpenAgents beside the old app instead of upgrading it.
+appId: dev.openhours.cortex
+productName: OpenAgents
+copyright: Copyright © 2026 OpenAgents
+# npm requires a three-part semantic package version, while Windows supports a
+# fourth hotfix/build component. The packaged UI reads `releaseVersion` from
+# the root package and these values stamp the executable as exactly 0.6.1.
+buildVersion: 0.6.1
+buildNumber: "0"
+
+directories:
+  # Everything is addressed relative to the repository root, not desktop/.
+  app: ..
+  # Relative to this config's own directory.
+  output: release
+  # Also relative to this config's directory, NOT to directories.app.
+  buildResources: build
+
+files:
+  # The shell.
+  - desktop/src/**/*
+  - desktop/package.json
+  # The window and tray icons are loaded from files at runtime. buildResources
+  # are NOT packaged by themselves, and a tray given a missing icon is blank.
+  - desktop/build/icon.ico
+  - desktop/build/icon.png
+  # The daemon and kernel, compiled.
+  - dist/src/**/*
+  # First-use provisioning must work outside the source checkout too.
+  - docker/bot-desktop/Dockerfile
+  - docker/bot-desktop/start.sh
+  - docker/bot-desktop/openhours-chrome
+  - docker/bot-desktop/mimeapps.list
+  - docker/bot-desktop/gateway.mjs
+  - docker/bot-desktop/observe.mjs
+  - docker/bot-desktop/computer.mjs
+  - docker/bot-desktop/exec.mjs
+  - docker/bot-desktop/files.mjs
+  - docker/bot-desktop/recorder.mjs
+  - docker/bot-desktop/jobs.mjs
+  - docker/bot-desktop/display.mjs
+  - docker/bot-desktop/seccomp.json
+  - docker/bot-desktop/LICENSE.seccomp
+  # The interface, built. Without this the daemon serves nothing and the window
+  # opens on a connection error.
+  - web/dist/**/*
+  - package.json
+  - THIRD_PARTY_NOTICES.md
+  - LICENSE
+  - desktop/update-channel.json
+  # The template copied into the user's data directory on first run.
+  - openhours.config.example.json
+  # node_modules is NOT listed. electron-builder resolves the production
+  # dependencies of package.json by itself and ships only those - ws, zod, the
+  # MCP SDK, pinned Playwright and their transitive deps. Browser binaries are
+  # installed into the user's Playwright cache through the app's setup control.
+  # Globbing the directory by hand overrode
+  # that and pulled in the whole toolchain: typescript, vite, vitest and their
+  # trees, none of which an installed app runs.
+
+  # Trimming what does survive.
+  # "doc" can be runtime code (ExcelJS lib/doc), so only trim unambiguous documentation names.
+  - '!**/node_modules/**/{test,tests,__tests__,example,examples,docs}/**'
+  # Keep Markdown license/notice files shipped by dependencies.
+  - '!**/node_modules/**/*.{map,ts,flow,tsbuildinfo}'
+  - '!**/node_modules/**/{.bin,.github,.vscode}/**'
+  - '!**/*.{tsbuildinfo,log}'
+  - '!**/.git/**'
+  # Reference captures and research material: large, and not redistributable.
+  - '!docs/grokbot-reference/**'
+  - '!scratch/**'
+  - '!desktop/release/**'
+  - '!desktop/node_modules/**'
+  - '!web/node_modules/**'
+  - '!web/src/**'
+  - '!web/public/**'
+  - '!src/**'
+  - '!tests/**'
+  - '!scripts/**'
+  # The operator's own working files must never be baked into an installer.
+  - '!openhours.config.json'
+  - '!openhours.config.dev.json'
+  - '!data/**'
+  - '!local-usage-index.json'
+  - '!.env*'
+
+# Electron 44's RUN_AS_NODE ESM package reader cannot load this daemon through
+# app.asar (verified ERR_INVALID_PACKAGE_CONFIG at packaged startup). Use a
+# regular application directory for native module resolution in both processes.
+# The user's database remains outside the package.
+asar: false
+
+# Electron fuses, flipped in the binary at build time.
+#
+# runAsNode STAYS ON: the daemon is this same executable with
+# ELECTRON_RUN_AS_NODE=1 (see desktop/src/daemon.mjs), and turning it off would
+# stop the app starting its own server.
+# NODE_OPTIONS and --inspect are how code gets injected into, or a debugger
+# attached to, an installed Electron app by anything that can set an
+# environment variable or edit a shortcut. Nothing here needs either.
+# The asar fuses stay off because the app is not packaged as asar (above).
+electronFuses:
+  runAsNode: true
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: false
+  onlyLoadAppFromAsar: false
+
+win:
+  target:
+    # Two shapes of the same app, because they answer different questions.
+    #   nsis     - a real installer: Start Menu entry, desktop shortcut, an
+    #              uninstaller, and a fixed install location. What you publish
+    #              for people who want the app on their machine.
+    #   portable - one self-contained .exe that runs with no installation at
+    #              all. What you send someone who just wants to try it, and
+    #              what works on a machine where they cannot install software.
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  # Resolved inside buildResources.
+  icon: icon.ico
+  # Unsigned. A signed build needs a certificate the project does not have, and
+  # SmartScreen will warn on first run until one is used. Saying so here is
+  # better than a signing config that silently does nothing.
+  signAndEditExecutable: true
+
+# Predictable filenames. The default embeds spaces and the version in a shape
+# that is awkward to link to from a release page. The version is a macro, not a
+# literal: a hardcoded one silently produced a 0.4.5 filename around a 0.4.6
+# build, and the publish step then looked for a file that did not exist.
+artifactName: OpenAgents-${version}-${os}-${arch}-${ext}
+
+portable:
+  artifactName: OpenAgents-${version}-portable.${ext}
+  # app-builder-lib 26.15.3 checks `!unpackDirName`, so TRUE (despite its
+  # misleading false-option documentation) omits UNPACK_DIR_NAME and uses a
+  # fresh $PLUGINSDIR per launch. A shared build directory is deleted by a
+  # second launcher after Electron hands off to the first running instance.
+  unpackDirName: true
+  # The window title while the self-extractor runs.
+  splashImage: null
+
+nsis:
+  artifactName: OpenAgents-${version}-setup.${ext}
+  uninstallDisplayName: OpenAgents ${version}
+  # A per-user install needs no administrator, which is the difference between
+  # "double-click and it works" and "ask your IT department".
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: OpenAgents
+  # The user's database lives in userData and is NOT removed on uninstall.
+  # Deleting someone's conversation history because they uninstalled an app is
+  # not a decision this installer should make on their behalf.
+  deleteAppDataOnUninstall: false
+
+mac:
+  target: [dmg]
+  icon: icon.png
+  category: public.app-category.developer-tools
+
+linux:
+  target: [AppImage]
+  icon: icon.png
+  category: Development

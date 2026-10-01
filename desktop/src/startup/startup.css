@@ -1,0 +1,263 @@
+/*
+ * The startup screen follows the saved app theme, including system mode.
+ * No external fonts or assets: this page must render when nothing else can.
+ */
+
+:root {
+  color-scheme: dark;
+  --bg: #0d0f0d;
+  --panel: rgba(255, 255, 255, 0.045);
+  --line: rgba(255, 255, 255, 0.09);
+  --text: #eef0ea;
+  --muted: #9aa097;
+  --accent: #c8f07a;
+  --ok: #7fd08a;
+  --warn: #e9b44c;
+  --danger: #f07a6a;
+  --shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f2ec;
+  --panel: #fffefa;
+  --line: #e4e3dc;
+  --text: #2c2d27;
+  --muted: #74756d;
+  --accent: #b64b28;
+  --ok: #4c7a3f;
+  --warn: #c7801c;
+  --danger: #d24a3c;
+  --shadow: 0 30px 70px rgba(44, 45, 39, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+/* Author `display` rules beat the browser's own [hidden] rule, so a hidden
+   flex row would still show. The script hides and shows by attribute. */
+[hidden] { display: none !important; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font: 13px/1.5 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(900px 520px at 50% -10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    var(--bg);
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ------------------------------------------------------------ titlebar -- */
+
+.titlebar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 40px;
+  display: flex;
+  z-index: 2;
+}
+.drag { flex: 1; -webkit-app-region: drag; }
+.controls { display: flex; -webkit-app-region: no-drag; }
+body.mac .controls { display: none; }
+.control {
+  width: 46px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: default;
+}
+.control:hover { background: var(--panel); color: var(--text); }
+.control.danger:hover { background: #c42b1c; color: #fff; }
+
+/* --------------------------------------------------------------- stage -- */
+
+.stage {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px 32px;
+  text-align: center;
+  animation: arrive 520ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes arrive {
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+
+h1 {
+  margin: 22px 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.lede { margin: 0 0 22px; color: var(--muted); max-width: 440px; }
+
+/* ---------------------------------------------------------------- mark -- */
+
+.mark {
+  position: relative;
+  width: 96px;
+  height: 96px;
+}
+.ring, .core, .spark { position: absolute; border-radius: 50%; }
+.ring { inset: 0; border: 1px solid var(--line); }
+.r1 { inset: 0; border-top-color: var(--accent); animation: spin 2.4s linear infinite; }
+.r2 { inset: 14px; border-right-color: color-mix(in srgb, var(--accent) 70%, transparent); animation: spin 1.8s linear infinite reverse; }
+.r3 { inset: 28px; border-bottom-color: color-mix(in srgb, var(--accent) 45%, transparent); animation: spin 3.2s linear infinite; }
+.core {
+  inset: 40px;
+  background: var(--accent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: breathe 1.6s ease-in-out infinite;
+}
+.spark {
+  width: 6px;
+  height: 6px;
+  top: -3px;
+  left: calc(50% - 3px);
+  background: var(--accent);
+  transform-origin: 3px 51px;
+  animation: spin 2.4s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes breathe {
+  0%, 100% { transform: scale(.82); opacity: .75; }
+  50% { transform: scale(1); opacity: 1; }
+}
+
+.stage[data-status="running"] .core { background: var(--ok); animation: none; }
+.stage[data-status="failed"] .ring { animation-play-state: paused; border-color: var(--line); }
+.stage[data-status="failed"] .core { background: var(--danger); animation: none; box-shadow: 0 0 24px color-mix(in srgb, var(--danger) 50%, transparent); }
+.stage[data-status="failed"] .spark { display: none; }
+.stage[data-status="restarting"] .core { background: var(--warn); }
+
+/* --------------------------------------------------------------- steps -- */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+  width: min(420px, 100%);
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  color: var(--muted);
+  transition: color 240ms ease, background 240ms ease;
+}
+.step[data-state="active"] { color: var(--text); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.step[data-state="done"] { color: var(--text); }
+.label { flex: 1; }
+.meta { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
+
+.dot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  flex: none;
+  transition: border-color 240ms ease, background 240ms ease;
+}
+.step[data-state="active"] .dot { border-color: var(--accent); border-top-color: transparent; animation: spin .9s linear infinite; }
+.step[data-state="done"] .dot { border-color: var(--ok); background: var(--ok); }
+.step[data-state="done"] .dot::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1.5px;
+  width: 3px;
+  height: 6px;
+  border: solid var(--bg);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+  animation: pop 260ms cubic-bezier(.2, .9, .3, 1.4) both;
+}
+.step[data-state="warn"] .dot { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 25%, transparent); }
+.step[data-state="error"] .dot { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 25%, transparent); }
+
+@keyframes pop { from { transform: rotate(45deg) scale(0); } to { transform: rotate(45deg) scale(1); } }
+
+/* -------------------------------------------------------- detail/cards -- */
+
+.detail {
+  margin: 16px 0 0;
+  max-width: 460px;
+  color: var(--muted);
+  -webkit-user-select: text;
+  user-select: text;
+  animation: arrive 320ms ease both;
+}
+.stage[data-status="failed"] .detail { color: var(--text); }
+
+.docker-card {
+  margin-top: 14px;
+  width: min(420px, 100%);
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warn) 7%, transparent);
+  text-align: left;
+  animation: arrive 320ms ease both;
+}
+.docker-card p { margin: 0 0 4px; }
+.hint { color: var(--muted); font-size: 12px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; justify-content: flex-start; }
+.main-actions { justify-content: center; margin-top: 18px; }
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+.btn:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); transform: translateY(-1px); }
+.btn:active { transform: translateY(0) scale(.98); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.primary { background: var(--text); color: var(--bg); border-color: transparent; }
+.btn[disabled] { opacity: .55; pointer-events: none; }
+
+.toast {
+  min-height: 20px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.toast.show { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}

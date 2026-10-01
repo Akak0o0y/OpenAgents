@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { BrowserSandbox } from '../dist/src/daemon/browser-sandbox.js';
+import { BrowserTools, browserAction } from '../dist/src/daemon/browser-tools.js';
+import { AgentStore } from '../dist/src/daemon/agent-store.js';
+import { ArtifactStore } from '../dist/src/daemon/artifacts.js';
+import { MemorySecretStore } from '../dist/src/daemon/secret-store.js';
+
+const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'oh-docker-browser-'));
+const store = new AgentStore(path.join(directory, 'state.db'));
+const sandbox = new BrowserSandbox({ ownerId: directory });
+const browser = new BrowserTools({ store, artifacts: new ArtifactStore(store), secrets: new MemorySecretStore(), sandbox, isolation: 'sandbox' });
+const checks = [];
+try {
+  await sandbox.prepare();
+  assert.equal(sandbox.status().state, 'ready', sandbox.status().message);
+  assert.equal(browser.status().isolation, 'sandbox');
+  checks.push('real Docker browser container ready; local-browser fallback forbidden');
+  store.createAgent({ id: 'probe', name: 'Docker probe', model_id: 'test-only', budget_cap_usd: 1, current_status: 'IDLE' });
+  const task = store.createTaskRun({ agentId: 'probe', taskName: 'docker-browser-probe' });
+  store.startTaskRun(task.id);
+  const call = input => browser.call('probe', task.id, browserAction.parse({ tool: 'browser', ...input }), AbortSignal.timeout(30_000));
+  const page = await call({ action: 'navigate', url: 'https://example.com' });
+  assert.match(page.snapshot, /Example Domain/);
+  checks.push('Chromium inside Docker navigated to example.com and read its page');
+  const live = await browser.liveState('probe');
+  assert.equal(live.available, true);
+  assert.match(live.state.screenshot, /^data:image\/jpeg;base64,/);
+  checks.push('live screen returns a real JPEG');
+  await browser.control('probe', { action: 'takeover' });
+  let resumed = false;
+  const waiting = browser.waitForOperator(task.id, AbortSignal.timeout(10_000)).then(() => { resumed = true; });
+  await new Promise(resolve => setTimeout(resolve, 100));
+  assert.equal(resumed, false);
+  await browser.control('probe', { action: 'scroll', delta: 120 });
+  await browser.control('probe', { action: 'resume' });
+  await waiting;
+  await call({ action: 'snapshot' });
+  checks.push('operator takeover, scroll, resume and fresh bot observation');
+  await browser.endRun(task.id);
+  assert.equal(browser.status().active, 0);
+  checks.push('session capacity released');
+  console.log(JSON.stringify({ status: 'PASS', at: new Date().toISOString(), transport: process.env.OPENHOURS_WSL_DISTRO ?? 'native', checks }, null, 2));
+} finally {
+  await browser.stop();
+  await sandbox.stop();
+  store.close();
+}

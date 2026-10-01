@@ -1,0 +1,70 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import http from 'node:http';
+import { once } from 'node:events';
+import { pathToFileURL } from 'node:url';
+import { createHash } from 'node:crypto';
+import { spawn, spawnSync } from 'node:child_process';
+import assert from 'node:assert/strict';
+import { appExecutable } from './lib/app-executable.mjs';
+
+const [unpacked, output, mode] = process.argv.slice(2);
+if (!unpacked || !path.isAbsolute(unpacked) || !output) throw new Error('Pass an absolute win-unpacked directory and evidence JSON path.');
+const app = path.join(unpacked, 'resources', 'app');
+if (mode !== 'worker') {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'oh-packaged-browser-'));
+  const env = { ELECTRON_RUN_AS_NODE: '1', PATH: path.join(process.env.SystemRoot, 'System32') };
+  for (const key of ['SystemRoot', 'USERPROFILE', 'LOCALAPPDATA', 'TEMP', 'TMP']) if (process.env[key]) env[key] = process.env[key];
+  const child = spawn(appExecutable(unpacked), [path.resolve('scripts/verify-packaged-browser.mjs'), unpacked, path.resolve(output), 'worker'], { cwd: root, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  let logs = ''; child.stdout.on('data', b => { logs += b; }); child.stderr.on('data', b => { logs += b; });
+  const timeout = setTimeout(() => child.kill(), 60000);
+  const [code] = await once(child, 'exit'); clearTimeout(timeout);
+  fs.writeFileSync(`${output}.log`, logs); console.log(JSON.stringify({ code, profile: root, output }));
+  if (code !== 0) fs.writeFileSync(output, JSON.stringify({ status: 'FAILED', exitCode: code, reason: 'Packaged probe did not complete cleanly. See its adjacent log.' }, null, 2));
+  process.exitCode = code === 0 ? 0 : 1;
+} else {
+  const load = file => import(pathToFileURL(path.join(app, 'dist', 'src', 'daemon', file)).href);
+  const { BrowserTools, browserAction } = await load('browser-tools.js');
+  const { AgentStore } = await load('agent-store.js');
+  const { ArtifactStore } = await load('artifacts.js');
+  const { MemorySecretStore } = await load('secret-store.js');
+  const { DaemonWsServer } = await load('ws-server.js');
+  const cli = path.join(app, 'node_modules', 'playwright-core', 'cli.js');
+  const cliRun = spawnSync(process.execPath, [cli, '--version'], { env: process.env, windowsHide: true, encoding: 'utf8', timeout: 10000 });
+  assert.equal(cliRun.status, 0, cliRun.stderr); assert.match(cliRun.stdout, /1\.63\.0/);
+  const fixture = http.createServer((_req, res) => { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end('<title>Packaged browser</title><h1>Bundled runtime browser works.</h1>'); });
+  fixture.listen(0, '127.0.0.1'); await once(fixture, 'listening');
+  const origin = `http://127.0.0.1:${fixture.address().port}`;
+  const store = new AgentStore(path.join(process.cwd(), 'state.db')), artifacts = new ArtifactStore(store);
+  store.createAgent({ id: 'probe', name: 'Packaged probe', model_id: 'claude-haiku-4-5', budget_cap_usd: 1, current_status: 'IDLE' });
+  const browser = new BrowserTools({ store, artifacts, secrets: new MemorySecretStore(), previewOrigins: [origin] });
+  const api = new DaemonWsServer(0, () => ({}), { artifacts: id => artifacts.list(id, true), artifact: (run, id) => artifacts.read(run, id), getRunEvents: id => store.getTaskEvents(id), getRunWorkspace: async () => ({ available: false, reason: 'not used' }), readRunFile: async () => ({ available: false, reason: 'not used' }), approvals: () => [], mcpStatus: () => [] });
+  await api.start();
+  try {
+    assert.equal(browser.status().ready, true, 'This probe requires an already installed managed Chromium.');
+    const run = store.createTaskRun({ agentId: 'probe', taskName: 'packaged-browser' }); store.startTaskRun(run.id);
+    const page = await browser.call('probe', run.id, browserAction.parse({ tool: 'browser', action: 'navigate', url: origin }), AbortSignal.timeout(30000));
+    assert.match(page.snapshot, /Bundled runtime browser works/);
+    const capture = await browser.call('probe', run.id, browserAction.parse({ tool: 'browser', action: 'screenshot' }), AbortSignal.timeout(10000));
+    const url = `http://127.0.0.1:${api.boundPort}${capture.artifact.downloadUrl}`;
+    assert.equal((await fetch(url)).status, 401);
+    const response = await fetch(url, { headers: { Authorization: `Bearer ${api.authToken}` } });
+    assert.equal(response.status, 200); assert.match(response.headers.get('content-disposition'), /attachment/);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    assert.equal(bytes.subarray(0, 2).toString('hex'), 'ffd8');
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), capture.artifact.sha256);
+    const auth = { headers: { Authorization: `Bearer ${api.authToken}` } };
+    assert.equal((await fetch(`http://127.0.0.1:${api.boundPort}/api/runs/other/artifacts/${capture.artifact.id}`, auth)).status, 404);
+    const live = await browser.liveState('probe'); assert.equal(live.available, true); assert.match(live.state.screenshot, /^data:image\/jpeg;base64,/);
+    await browser.control('probe', { action: 'takeover' });
+    let resumed = false; const waiting = browser.waitForOperator(run.id, AbortSignal.timeout(10000)).then(() => { resumed = true; });
+    await new Promise(resolve => setTimeout(resolve, 100)); assert.equal(resumed, false);
+    await browser.control('probe', { action: 'scroll', delta: 100 });
+    await browser.control('probe', { action: 'resume' }); await waiting;
+    await assert.rejects(browser.call('probe', run.id, browserAction.parse({ tool: 'browser', action: 'navigate', url: origin }), AbortSignal.timeout(10000)), /fresh browser snapshot/);
+    await browser.call('probe', run.id, browserAction.parse({ tool: 'browser', action: 'snapshot' }), AbortSignal.timeout(10000));
+    await browser.endRun(run.id); assert.equal(browser.status().active, 0);
+    fs.writeFileSync(output, JSON.stringify({ status: 'PASS', capturedAt: new Date().toISOString(), executable: process.execPath, app, runtime: process.versions, cli: cliRun.stdout.trim(), page: { title: page.title, snapshot: page.snapshot }, screenshotSha256: capture.artifact.sha256, checks: ['bundled CLI with no Node/npm on PATH', 'real Chromium fixture navigation', 'real JPEG', 'authenticated binary HTTP download', 'wrong-run and missing-auth refusal', 'released browser capacity'], limitations: ['Uses the existing per-user Chromium cache; does not qualify installation on a clean machine or an installer upgrade.'] }, null, 2));
+  } finally { await browser.stop(); await api.close(); store.close(); fixture.closeAllConnections(); await new Promise(resolve => fixture.close(resolve)); }
+}

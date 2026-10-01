@@ -1,0 +1,45 @@
+{
+  "schema": "openhours.character-off-case/1",
+  "id": "agent-loop.agent-loop.builtin.supplied",
+  "seam": "agent-loop",
+  "scenario": "agent-loop.builtin",
+  "description": "supplied",
+  "logicalCalls": 1,
+  "requests": [
+    {
+      "kind": "llm",
+      "connection": null,
+      "maxTokens": 2048,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Task Name: cli-arg-parser\nInitial Workspace Files:\nFile: package.json\n{\n  \"name\": \"cli-arg-parser\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"test\": \"node --test\"\n  }\n}\n\nFile: test/parser.test.js\n\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { parseArgs } from '../src/index.js';\n\ntest('parses long flags with equality', () => {\n  const res = parseArgs(['--name=antigravity', '--port=8080']);\n  assert.equal(res.flags.name, 'antigravity');\n  assert.equal(res.flags.port, '8080');\n});\n\ntest('parses boolean flags and positionals', () => {\n  const res = parseArgs(['--verbose', 'start', 'server']);\n  assert.equal(res.flags.verbose, true);\n  assert.deepEqual(res.positional, ['start', 'server']);\n});\n\n\nVerification command: npm test\n\nPlease review the requirements, implement the required modules, and ensure all tests pass."
+        }
+      ],
+      "modelId": "claude-haiku-4-5",
+      "onProviderEvent": "[function]",
+      "onStream": null,
+      "parallel_tool_calls": null,
+      "signal": "[AbortSignal]",
+      "stream": null,
+      "systemPrompt": "Saved description fixture: you are Milo, a careful release assistant.\nKeep answers short and cite \"checked\" sources — never guess.\n\nFor this coding task, follow the execution format below.\nYou are implementing code to satisfy acceptance criteria and make all tests pass.\nThe project uses ES Modules (\"type\": \"module\"), so ensure you use named ES exports (e.g. export class / export function).\nWhen writing files, format each file inside a markdown code fence labeled with the relative file path, e.g.:\n```javascript:src/index.js\n// code here\n```\nReturn only clean, production-ready code.",
+      "temperature": null,
+      "tools": null,
+      "userPrompt": "Task Name: cli-arg-parser\nInitial Workspace Files:\nFile: package.json\n{\n  \"name\": \"cli-arg-parser\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"test\": \"node --test\"\n  }\n}\n\nFile: test/parser.test.js\n\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { parseArgs } from '../src/index.js';\n\ntest('parses long flags with equality', () => {\n  const res = parseArgs(['--name=antigravity', '--port=8080']);\n  assert.equal(res.flags.name, 'antigravity');\n  assert.equal(res.flags.port, '8080');\n});\n\ntest('parses boolean flags and positionals', () => {\n  const res = parseArgs(['--verbose', 'start', 'server']);\n  assert.equal(res.flags.verbose, true);\n  assert.deepEqual(res.positional, ['start', 'server']);\n});\n\n\nVerification command: npm test\n\nPlease review the requirements, implement the required modules, and ensure all tests pass."
+    }
+  ],
+  "promptAssembled": [
+    {
+      "source": "agent",
+      "promptChars": 587
+    }
+  ],
+  "eventTypes": [
+    "TASK_STARTED",
+    "PROMPT_ASSEMBLED",
+    "HISTORY_APPENDED",
+    "TURN_COMPLETED",
+    "TASK_COMPLETED"
+  ],
+  "opencode": null
+}

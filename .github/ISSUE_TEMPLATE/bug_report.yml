@@ -1,0 +1,30 @@
+name: Bug report
+description: Help us reproduce and fix a problem
+body:
+  - type: markdown
+    attributes:
+      value: "Use synthetic data. Never attach keys, .env files, auth tokens, browser profiles, or real databases. Security reports follow SECURITY.md."
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Minimal reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node version, OpenAgents version/commit, Docker/browser status, source or packaged build.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted logs or synthetic screenshots
+      description: Include only the relevant error and describe which checks ran.

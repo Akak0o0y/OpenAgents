@@ -1,0 +1,24 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { generateKeyPairSync,sign,createHash } from 'node:crypto';
+import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
+import { checkUpdate,downloadUpdate,isNewer } from '../src/updates.mjs';
+test('signed update discovery rejects tampering, downgrade, wrong platform and altered downloads',async()=>{
+  const {publicKey,privateKey}=generateKeyPairSync('ed25519');
+  const bytes=Buffer.from('Synthetic installer; never executed.');
+  const manifest={version:'0.2.0',assets:[{platform:'win32',arch:'x64',url:'https://releases.example.test/setup.exe',bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}]};
+  const payload=Buffer.from(JSON.stringify(manifest));const envelope={payload:payload.toString('base64'),signature:sign(null,payload,privateKey).toString('base64')};
+  const channel={feedUrl:'https://releases.example.test/stable.json',publicKey};
+  const fetcher=async()=>new Response(JSON.stringify(envelope));
+  const asset=await checkUpdate(channel,'0.1.0','win32','x64',fetcher);assert.equal(asset.version,'0.2.0');
+  assert.equal(await checkUpdate(channel,'0.3.0','win32','x64',fetcher),null);
+  await assert.rejects(checkUpdate(channel,'0.1.0','darwin','arm64',fetcher),/no installer/);
+  await assert.rejects(checkUpdate(channel,'0.1.0','win32','x64',async()=>new Response(JSON.stringify({...envelope,payload:Buffer.from('{}').toString('base64')}))),/signature/);
+  await assert.rejects(checkUpdate({...channel,feedUrl:'http://bad.test'},'0.1.0'),/HTTPS/);
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'oh-update-'));const dest=path.join(root,'setup.exe');
+  await assert.rejects(downloadUpdate(asset,dest,async()=>new Response('altered')),/checksum/);assert.equal(fs.existsSync(dest),false);
+  await downloadUpdate(asset,dest,async()=>new Response(bytes));assert.deepEqual(fs.readFileSync(dest),bytes);
+  await assert.rejects(downloadUpdate(asset,dest,async()=>new Response(bytes)),/EEXIST/);
+  assert.equal(isNewer('1.10.0','1.9.9'),true);assert.equal(isNewer('1.0.0','1.0.0'),false);
+  assert.equal(isNewer('0.3.9.1','0.3.9'),true);assert.equal(isNewer('0.3.9','0.3.9.1'),false);
+});

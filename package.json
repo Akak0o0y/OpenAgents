@@ -1,0 +1,99 @@
+{
+  "name": "omni-agent-kernel",
+  "version": "0.6.1",
+  "releaseVersion": "0.6.1",
+  "shortVersionWindows": "0.6.1",
+  "description": "Hardened 24/7 autonomous agent runtime and safety harness",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test:character-continuation": "node --test --test-concurrency=1 dist/tests/character-continuation.test.js dist/tests/character-prepare.test.js dist/tests/character-admission.test.js dist/tests/character-off-parity.test.js",
+    "check-env": "powershell -ExecutionPolicy Bypass -File ./scripts/check-environment.ps1",
+    "test:kernel": "node --test dist/tests/kernel.test.js dist/tests/docker-host.test.js",
+    "test:security": "node --test dist/tests/security-eval.test.js",
+    "test:evals": "node --test dist/tests/trace-runner.test.js",
+    "traces": "npm run build && node dist/src/evals/run-traces.js",
+    "sweep:free": "npm run build && node dist/src/evals/run-traces.js --sweep-free",
+    "evals": "npm run traces --",
+    "test": "npm run build && node --test dist/tests/kernel.test.js dist/tests/docker-host.test.js && node --test dist/tests/security-eval.test.js && node --test dist/tests/trace-runner.test.js && npm run test:daemon && npm run test:browser && npm run test:completion && npm run test:expansion",
+    "test:completion": "node --test --test-concurrency=1 dist/tests/attachments.test.js dist/tests/document-tools.test.js dist/tests/repository-publication.test.js dist/tests/work-questions.test.js",
+    "browser:install": "playwright install chromium",
+    "test:browser": "node --test --test-concurrency=1 dist/tests/web-research.test.js dist/tests/browser-login.test.js dist/tests/browser-daily-use.test.js dist/tests/browser-tools.test.js dist/tests/browser-general-use.test.js dist/tests/computer-use.test.js dist/tests/browser-accounts.test.js dist/tests/browser-integration.test.js dist/tests/browser-extension-retirement.test.js dist/tests/publish-honesty.test.js",
+    "test:bot-desktop": "npm run build && node scripts/verify-bot-desktop.mjs",
+    "test:bot-desktop-unit": "npm run build && node --test dist/tests/bot-desktop.test.js",
+    "test:flow-desktop": "npm run build && node scripts/verify-flow-desktop.mjs",
+    "test:daemon": "node --test --test-concurrency=1 dist/tests/run-steps.test.js dist/tests/vertical-slice.test.js dist/tests/agent-store.test.js dist/tests/agent-loop.test.js dist/tests/ws-server.test.js dist/tests/work-producer.test.js dist/tests/console.test.js dist/tests/goal-producer.test.js dist/tests/opencode-executor.test.js dist/tests/agent-layers.test.js dist/tests/layer-taxonomy.test.js dist/tests/read-api.test.js dist/tests/cortex-view.test.js dist/tests/galaxy.test.js dist/tests/mcp.test.js dist/tests/control-plane.test.js dist/tests/proposal-preflight.test.js dist/tests/config-file.test.js dist/tests/chat.test.js dist/tests/cron.test.js dist/tests/routines.test.js dist/tests/routine-producer.test.js dist/tests/activity-digest.test.js dist/tests/composite-producer.test.js dist/tests/routines-api.test.js dist/tests/search-api.test.js dist/tests/usage-api.test.js dist/tests/plugin-registry.test.js dist/tests/agent-delete-webhook.test.js dist/tests/local-usage.test.js dist/tests/local-auth.test.js dist/tests/docker-status.test.js dist/tests/chat-proposals.test.js dist/tests/native-tool-calls.test.js dist/tests/local-gateway.test.js dist/tests/browser-sandbox.test.js dist/tests/runtime-regressions.test.js dist/tests/sandbox-ownership.test.js dist/tests/work-runtime.test.js dist/tests/system-work.test.js dist/tests/durable-work.test.js dist/tests/recovery-integrity.test.js dist/tests/provider-contract.test.js dist/tests/provider-connections.test.js dist/tests/capability-honesty.test.js dist/tests/repository-snapshot.test.js dist/tests/text-diff.test.js dist/tests/repository-work.test.js dist/tests/repository-work-docker.test.js dist/tests/coding-tools.test.js dist/tests/work-steer.test.js dist/tests/context-compaction.test.js dist/tests/subagent-delegation.test.js dist/tests/workspace-guidance.test.js dist/tests/llm-streaming.test.js dist/tests/native-tool-mode.test.js dist/tests/failure-recovery.test.js dist/tests/human-assist.test.js dist/tests/transient-retry.test.js dist/tests/routine-serialization.test.js dist/tests/snapshot-persistence.test.js dist/tests/publish-probes.test.js dist/tests/browser-publish.test.js dist/tests/publish-policy.test.js dist/tests/external-effects.test.js dist/tests/character-off-parity.test.js dist/tests/character-schema.test.js dist/tests/character-compiler.test.js dist/tests/character-recall.test.js dist/tests/character-store.test.js dist/tests/character-identity.test.js dist/tests/character-runtime.test.js dist/tests/one-shot-call.test.js dist/tests/character-rules.test.js dist/tests/character-speaker.test.js dist/tests/character-preview.test.js dist/tests/character-http.test.js dist/tests/character-api.test.js dist/tests/character-probes.test.js dist/tests/character-journal.test.js dist/tests/character-evidence.test.js dist/tests/character-preparation.test.js dist/tests/character-admission.test.js dist/tests/character-route.test.js dist/tests/character-projector.test.js dist/tests/character-setup.test.js dist/tests/brand-compat.test.js dist/tests/env-alias.test.js dist/tests/brand-audit.test.js dist/tests/routine-history.test.js dist/tests/routine-results.test.js",
+    "daemon": "npm run build && node dist/src/daemon/index.js",
+    "opencode:smoke": "npm run build && node dist/src/daemon/opencode-smoke.js",
+    "opencode:build-image": "npm run build && node scripts/build-opencode-image.mjs",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
+    "web:install": "npm --prefix web install",
+    "desktop": "npm --prefix desktop run start",
+    "desktop:dev": "npm --prefix desktop run dev",
+    "desktop:install": "npm --prefix desktop install",
+    "app": "npm run build && npm run web:build && npm --prefix desktop run icon && npm --prefix desktop run dist",
+    "app:dir": "npm run build && npm run web:build && npm --prefix desktop run icon && npm --prefix desktop run dist:dir",
+    "publish": "node scripts/publish-app.mjs",
+    "publish:only": "node scripts/publish-app.mjs --no-build",
+    "test:desktop": "node --test desktop/tests/daemon.test.mjs desktop/tests/suite-output.test.mjs desktop/tests/downloads.test.mjs desktop/tests/updates.test.mjs desktop/tests/resilience.test.mjs desktop/tests/sandbox-setup.test.mjs desktop/tests/wsl-docker.test.mjs desktop/tests/syntax.test.mjs desktop/tests/theme.test.mjs desktop/tests/content-security-policy.test.mjs desktop/tests/desktop-frame.test.mjs desktop/tests/computer-input.test.mjs desktop/tests/desktop-shell.test.mjs desktop/tests/desktop-jobs.test.mjs desktop/tests/desktop-media.test.mjs desktop/tests/desktop-i18n.test.mjs desktop/tests/legacy-profile.test.mjs desktop/tests/app-executable.test.mjs",
+    "test:soak": "node scripts/verify-system-soak.mjs",
+    "test:live-work": "npm run build && node scripts/verify-live-work.mjs",
+    "test:expansion": "node --test --test-concurrency=1 dist/tests/harness-expansion.test.js",
+    "release-gate": "node scripts/release-gate.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@napi-rs/canvas": "1.0.9",
+    "@tesseract.js-data/ara": "1.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
+    "docx": "9.5.1",
+    "exceljs": "4.4.0",
+    "fflate": "0.8.3",
+    "image-size": "2.0.4",
+    "pdfjs-dist": "6.3.289",
+    "playwright": "1.63.0",
+    "pptxgenjs": "4.0.1",
+    "tesseract.js": "7.0.0",
+    "ws": "^8.21.3",
+    "yaml": "2.9.1",
+    "zod": "^3.24.2",
+    "zod-to-json-schema": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.7.3"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ai-agents",
+    "autonomous-agents",
+    "mcp",
+    "docker-sandbox",
+    "open-source",
+    "agent-runtime"
+  ],
+  "main": "desktop/src/main.mjs",
+  "author": "OpenAgents",
+  "productName": "OpenAgents",
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    },
+    "pptxgenjs": {
+      "image-size": "2.0.4"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Akak0o0y/OpenAgents.git"
+  },
+  "homepage": "https://github.com/Akak0o0y/OpenAgents#readme",
+  "bugs": {
+    "url": "https://github.com/Akak0o0y/OpenAgents/issues"
+  }
+}

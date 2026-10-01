@@ -1,0 +1,11 @@
+title = "OpenAgents public source"
+[extend]
+useDefault = true
+
+# Source-file SHA-256 checksums, not credentials. Both constraints must match.
+[[allowlists]]
+description = "Reviewed source-integrity hashes in the character baseline"
+condition = "AND"
+paths = ['''tests/fixtures/character/baseline/manifest\.json$''']
+regexTarget = "line"
+regexes = ['''"src/daemon/(local-auth|secret-store|system-api)\.ts": "[a-f0-9]{64}"''']
