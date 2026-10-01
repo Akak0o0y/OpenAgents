@@ -12,7 +12,7 @@ Special thanks to **[FreeLLMAPI](https://github.com/tashfeenahmed/freellmapi)** 
 
 ![OpenAgents workspace with synthetic demo conversation](docs/media/workspace-demo.png)
 
-[Watch the 45-second introduction](docs/media/OpenAgents-45s.mp4) · [Voice-only version, no music](docs/media/OpenAgents-45s-No-Music.mp4) · [Get started](docs/getting-started.md) · [Contribute](CONTRIBUTING.md) · [Report a bug](https://github.com/Akak0o0y/OpenAgents/issues)
+[App introduction](docs/media/OpenAgents-45s-No-Music.mp4) · [Get started](docs/getting-started.md) · [Contribute](CONTRIBUTING.md) · [Report a bug](https://github.com/Akak0o0y/OpenAgents/issues)
 
 ## What you can do
 

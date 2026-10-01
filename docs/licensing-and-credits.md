@@ -22,4 +22,4 @@ No acknowledgement implies sponsorship, endorsement, or affiliation. Preserve th
 
 ## Demo media
 
-`docs/media/workspace-demo.png` uses the app UI with synthetic conversation data. `OpenAgents-45s.mp4` is a promotional demo, not a recording of verified autonomous completion. Its narration was generated with an ElevenLabs engine through Higgsfield; the score and motion graphics were created for the project. Generated-service media can have service-specific usage terms; do not infer those are relicensed by the root code license.
+`docs/media/workspace-demo.png` uses the app UI with synthetic conversation data. `OpenAgents-45s-No-Music.mp4` is a promotional app introduction, not a recording of verified autonomous completion. Its narration was generated with an ElevenLabs engine through Higgsfield, and its motion graphics were created for the project. The video contains narration with no background music. Generated-service media can have service-specific usage terms; do not infer those are relicensed by the root code license.
