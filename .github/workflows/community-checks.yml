@@ -28,6 +28,8 @@ jobs:
       - run: npm run build
       - run: npm run web:build
       - run: npm --prefix web test
+      - name: Browser recovery and human responses
+        run: node --test dist/tests/browser-recovery.test.js dist/tests/human-assist.test.js
       - run: npm run test:desktop
       - name: Configuration, auth, provider contracts and compatibility
         run: node --test --test-concurrency=1 dist/tests/config-file.test.js dist/tests/local-auth.test.js dist/tests/docker-host.test.js dist/tests/env-alias.test.js dist/tests/brand-compat.test.js dist/tests/brand-audit.test.js dist/tests/provider-connections.test.js

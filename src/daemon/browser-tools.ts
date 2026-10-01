@@ -41,6 +41,19 @@ export const browserAction = z.object({ tool: z.literal('browser'), action: z.en
   /** Type a saved account's detail instead of a value; the model never sees it. See browser-accounts.ts. */
   secret: z.enum(['username', 'password']).optional(), account: z.string().max(100).optional() }).strict();
 export type BrowserAction = z.infer<typeof browserAction>;
+const TARGETED_ACTIONS = new Set(['click', 'double_click', 'right_click', 'hover', 'drag', 'press', 'select', 'check', 'fill', 'download', 'upload']);
+
+/** Validate before acquiring a browser or recording an external action. Never guess a target. */
+export function browserTargetProblem(action: BrowserAction): string | null {
+  const valid = (choice: BrowserAction['target']) => Boolean(choice?.ref || (choice?.role && choice.name !== undefined));
+  if ((TARGETED_ACTIONS.has(action.action) || action.target !== undefined) && !valid(action.target)) {
+    return `Browser ${action.action} requires target.ref, or target.role and target.name, from a fresh snapshot. No interaction was sent.`;
+  }
+  if (action.action === 'drag' && !valid(action.destination)) {
+    return 'Browser drag requires destination.ref, or destination.role and destination.name, from a fresh snapshot. No interaction was sent.';
+  }
+  return null;
+}
 /** Chromium flags for every session, local or sandboxed: no traffic may leave outside the proxy. */
 const BROWSER_ARGS = ['--proxy-bypass-list=<-loopback>', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp'];
 type BrowserIsolation = 'sandbox' | 'computer';
@@ -664,6 +677,8 @@ export class BrowserTools {
   }
 
   async call(agentId: string, runId: string, action: BrowserAction, signal: AbortSignal) {
+    const problem = browserTargetProblem(action);
+    if (problem) throw new Error(problem);
     return this.withLease(agentId, runId, signal, s => this.performCall(s, action, signal));
   }
 

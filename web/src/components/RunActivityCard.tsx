@@ -6,6 +6,7 @@ import { BotFace } from './BotFace.js';
 import { PulseLoader } from './ui/Uiverse.js';
 import { ActivityTimeline } from './ActivityTimeline.js';
 import {GoalResultChecklist} from './GoalResultChecklist.js';
+import {RunHumanRequests} from './RunHumanRequests.js';
 
 export interface RunActivityCardProps {
   runId?: string | null;
@@ -86,6 +87,8 @@ export function RunActivityCard({ runId, agent, onOpenFile }: RunActivityCardPro
       </div>
 
       <p>{start?`${Math.max(0,Math.floor(((terminal?events[events.length-1]?.timestamp:clock)??clock)-start)/1000)}s elapsed · `:''}{usage.length?`${usage.length} reported model calls · ${known.length?`$${known.reduce((sum,m)=>sum+m.costUsd!,0).toFixed(6)} reported cost${known.length<usage.length?' + unknown usage':''}`:'Cost unknown'}`:'Model usage not yet reported'}</p>
+
+      {runId && !terminal && <RunHumanRequests key={`${agent.id}:${runId}`} runId={runId} agentId={agent.id} waiting={steps.some(step=>step.tool==='request_human'&&step.status==='waiting')}/>}
 
       {activity.todos && activity.todos.length > 0 ? (
         <details className="oh-activity-checklist" open data-testid="activity-checklist">

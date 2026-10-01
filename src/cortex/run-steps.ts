@@ -56,6 +56,7 @@ export interface RunActivity {
 
 /** The daemon's progress tool names, in the words the status strip and step rows use. */
 export const TOOL_LABELS: Record<string, string> = {
+  request_human: 'Waiting for your response',
   declare_results: 'Recording expected results',
   result_status: 'Checking result evidence',
   send_message: 'Sending message and checking receipt',

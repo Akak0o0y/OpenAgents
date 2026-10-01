@@ -67,3 +67,31 @@ describe('account request card', () => {
     });
   });
 });
+
+describe('human assistance card', () => {
+  const human: ApprovalRow = {...row, kind:'human-assist', payload_json:JSON.stringify({what:'Choose the destination section',why:'The site has two sections with similar names.'})};
+  it('shows an editable response without multiple-choice options and submits that response',async()=>{
+    const user=userEvent.setup(),onAnswer=vi.fn();
+    render(<GrokQuestionCard approval={parseApproval(human)} busy={false} onAnswer={onAnswer}/>);
+    expect(screen.getByText('Choose the destination section')).toBeVisible();
+    expect(screen.getByText('The site has two sections with similar names.')).toBeVisible();
+    await user.type(screen.getByRole('textbox',{name:'Your response'}),'Use the preview section.');
+    await user.click(screen.getByRole('button',{name:'Continue with my response'}));
+    expect(onAnswer).toHaveBeenCalledWith('approval-1','approve','Use the preview section.');
+    expect(screen.getByRole('textbox',{name:'Your response'})).toHaveValue('Use the preview section.');
+  });
+  it('can confirm an action without text or decline with an explanation',async()=>{
+    const user=userEvent.setup(),onAnswer=vi.fn();
+    render(<GrokQuestionCard approval={parseApproval(human)} busy={false} onAnswer={onAnswer}/>);
+    await user.click(screen.getByRole('button',{name:'I’ve done it — continue'}));
+    expect(onAnswer).toHaveBeenLastCalledWith('approval-1','approve');
+    await user.type(screen.getByRole('textbox',{name:'Your response'}),'I cannot access that account.');
+    await user.click(screen.getByRole('button',{name:'I can’t do this'}));
+    expect(onAnswer).toHaveBeenLastCalledWith('approval-1','deny','I cannot access that account.');
+  });
+  it('disables human responses for requests that are no longer waiting',()=>{
+    render(<GrokQuestionCard approval={parseApproval({...human,waiting:false})} busy={false} onAnswer={vi.fn()}/>);
+    expect(screen.getByRole('textbox',{name:'Your response'})).toBeDisabled();
+    expect(screen.getByRole('button',{name:'I’ve done it — continue'})).toBeDisabled();
+  });
+});

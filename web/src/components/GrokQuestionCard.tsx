@@ -22,7 +22,7 @@ import { CharacterProposalCard } from './CharacterProposalCard.js';
  * change a row and free nothing.
  */
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { UI_LOCALE } from '../lib/numbers.js';
 import { Icon } from './ui/icons.js';
 import type { ApprovalRow } from '../lib/transport.js';
@@ -97,6 +97,8 @@ export function describeApproval(kind: string, payload: any): { title: string; p
   const text = (value: unknown, max = 240) => (typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null);
   const minutes = (ms: unknown) => (typeof ms === 'number' && ms > 0 ? Math.round(ms / 60000) : null);
   switch (kind) {
+    case 'human-assist':
+      return { title: text(payload?.what, 2000) ?? 'Your help is needed', points: [text(payload?.why, 1000)].filter((p): p is string => Boolean(p)) };
     case 'mission-start': {
       const every = minutes(payload?.intervalMs);
       return {
@@ -137,6 +139,7 @@ interface GrokQuestionCardProps {
 
 export function GrokQuestionCard({ approval, busy, onAnswer }: GrokQuestionCardProps) {
   const [custom, setCustom] = useState('');
+  const responseId = useId();
   const { row, question, options, allowCustom } = approval;
   const pending = row.status === 'PENDING';
   const orphaned = pending && !row.waiting;
@@ -201,7 +204,26 @@ export function GrokQuestionCard({ approval, busy, onAnswer }: GrokQuestionCardP
         </p>
       )}
 
-      {row.kind === 'account-request' ? (
+      {row.kind === 'human-assist' ? (
+        <form className="grok-human-response" onSubmit={(event) => {
+          event.preventDefault();
+          if (busy || orphaned) return;
+          if (custom.trim()) onAnswer(row.id, 'approve', custom.trim());
+          else onAnswer(row.id, 'approve');
+        }}>
+          {approval.points.map(point => <p key={point}>{point}</p>)}
+          <label htmlFor={responseId}>Your response</label>
+          <textarea id={responseId} rows={3} maxLength={2000} value={custom}
+            placeholder="Answer the question or explain what you changed…"
+            disabled={busy || orphaned} onChange={event => setCustom(event.target.value)}
+            aria-describedby={`${responseId}-hint`} />
+          <p id={`${responseId}-hint`} className="grok-question-meta">This response goes to the bot. Enter passwords and verification codes only on the site in the bot’s desktop.</p>
+          <div className="grok-question-actions">
+            <Button type="submit" kind="primary" disabled={busy || orphaned}>{custom.trim() ? 'Continue with my response' : 'I’ve done it — continue'}</Button>
+            <Button type="button" kind="secondary" disabled={busy || orphaned} onClick={() => onAnswer(row.id, 'deny', custom.trim() || undefined)}>I can’t do this</Button>
+          </div>
+        </form>
+      ) : row.kind === 'account-request' ? (
         <>
           {approval.points.length > 0 && (
             <ul className="grok-approval-points">
@@ -253,7 +275,7 @@ export function GrokQuestionCard({ approval, busy, onAnswer }: GrokQuestionCardP
         </>
       )}
 
-      {options.length > 0 && allowCustom && (
+      {row.kind !== 'human-assist' && options.length > 0 && allowCustom && (
         <form
           className="grok-question-custom"
           onSubmit={(event) => {

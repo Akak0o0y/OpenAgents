@@ -800,6 +800,12 @@ button.oh-chip { cursor: pointer; }
   flex-wrap: wrap;
 }
 .oh-activity-title { color: var(--gk-text); font-weight: 550; min-width: 0; overflow-wrap: anywhere; }
+.oh-run-human-requests { flex: 0 0 auto; min-width: 0; display: grid; gap: 10px; }
+.grok-human-response { display: grid; gap: 10px; min-width: 0; }
+.grok-human-response textarea { box-sizing: border-box; width: 100%; min-height: 90px; resize: vertical; padding: 10px 12px; border: 1px solid var(--gk-line); border-radius: 10px; background: var(--gk-bg-input); color: var(--gk-text); font: inherit; }
+.grok-human-response textarea:focus-visible { outline: 2px solid var(--gk-text); outline-offset: 2px; }
+.grok-human-response .grok-question-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.grok-human-response .grok-question-actions button { white-space: normal; }
 .oh-activity-badges {
   margin-left: auto;
   display: flex;
