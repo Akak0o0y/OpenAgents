@@ -28,6 +28,10 @@ jobs:
       - run: npm --prefix web ci
       # The desktop tests start the real Electron binary (desktop-frame) and a headless Chromium (theme).
       - run: npm --prefix desktop ci
+      # The electron package has no install script; it downloads its binary on the first require().
+      - name: Electron binary
+        working-directory: desktop
+        run: node -e "require('electron')"
       - name: Headless Chromium for the startup-page test
         shell: bash
         run: npx playwright install --only-shell $([ "$RUNNER_OS" = Linux ] && echo --with-deps) chromium
@@ -42,8 +46,9 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           command -v xvfb-run >/dev/null || { sudo apt-get update && sudo apt-get install -y xvfb; }
-          sudo chown root:root desktop/node_modules/electron/dist/chrome-sandbox
-          sudo chmod 4755 desktop/node_modules/electron/dist/chrome-sandbox
+          sandbox="$(dirname "$(cd desktop && node -p "require('electron')")")/chrome-sandbox"
+          sudo chown root:root "$sandbox"
+          sudo chmod 4755 "$sandbox"
       - name: Desktop shell
         shell: bash
         run: if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm run test:desktop; else npm run test:desktop; fi

@@ -103,7 +103,9 @@ test('download failure and insufficient hardware stay actionable without install
   assert.deepEqual(f.calls, []);
   f.facts.virtualization = false;
   assert.match((await f.setup.run({ retry: true })).message, /firmware/);
-  assert.equal(supportedWindows({ ...f.facts, ram: 4 * 1024 ** 3 }), 'The local sandbox needs at least 8 GB of memory. Chat is available on this computer.');
+  // The architecture is passed, not read from the host: CI also runs this on arm64 macOS.
+  assert.equal(supportedWindows({ ...f.facts, ram: 4 * 1024 ** 3 }, 'x64'), 'The local sandbox needs at least 8 GB of memory. Chat is available on this computer.');
+  assert.match(supportedWindows(f.facts, 'arm64'), /supported Windows 10\/11 x64 computer/);
 });
 test('WSL version minimum is checked numerically', () => {
   assert.equal(wslIsCurrent({ code: 0, stdout: 'WSL: 2.1.4' }), false);
