@@ -1,7 +1,7 @@
 {
   "name": "openagents-desktop",
   "private": true,
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "OpenAgents desktop shell",
   "type": "module",
   "main": "src/main.mjs",

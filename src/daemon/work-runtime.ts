@@ -617,6 +617,18 @@ export class WorkRuntime {
     const routineId = run.routine_id || input.scheduled?.routineId || undefined;
     const flowKey=routineId&&kind!=='code'&&!contract.repository?flowKeyFor(routineId,contract.id,operatorRequest):undefined;
     const publishRoutineId = publishPolicy ? routineId : undefined;
+    const publicationStatus = () => {
+      const policy = publishRoutineId ? publishPolicy!.get(publishRoutineId) : null;
+      const records = this.options.browser?.publishes?.(run.id) ?? [];
+      const verdict = completionVerdict(records, !!policy?.required);
+      return {required:!!policy?.required,origin:policy?.origin ?? null,policySource:policy?.source ?? null,
+        canComplete:verdict.ok,...(!verdict.ok ? {blocker:verdict.kind,message:verdict.message} : {}),
+        records:records.map(record=>({state:record.state,postUrl:record.postUrl ?? null}))};
+    };
+    messages[0] = {...messages[0],content:messages[0].content + '\nRuntime completion requirements: ' + JSON.stringify({
+      runKind:input.mission?'mission':routineId?'routine':'task',missionDecisionAllowed:!!input.mission,
+      existingResultChecklist:!!resultManifest,publication:publicationStatus(),
+    }) + '\nUse result_status before completion. Keep any existing checklist; do not redeclare it. A required publication needs confirmation in this run, not a draft or a past post. If posting cannot be completed, use block with the actual reason. If a send is uncertain, reconcile it or request human help; never resubmit it. Non-mission runs finish with no mission field.'};
     /**
      * The completion gate (spec 6.9) on the four routes that commit COMPLETED: answer, finish, the
      * auto-verify at the turn limit and the verified end of the loop. A run that attempted a post ends
@@ -843,7 +855,11 @@ export class WorkRuntime {
         return compacted;
       };
 
-      const dispatch = async (action: WorkAction, actionCallId: string, currentTurnStartedAt: number, currentTurn: number, maxTurns: number,played=false): Promise<{ finished: true; result: WorkResult } | { finished: false; observation: Record<string, unknown> }> => {
+      const dispatch = async (requestedAction: WorkAction, actionCallId: string, currentTurnStartedAt: number, currentTurn: number, maxTurns: number,played=false): Promise<{ finished: true; result: WorkResult } | { finished: false; observation: Record<string, unknown> }> => {
+        // Mission metadata cannot create a mission; all normal completion gates still apply.
+        const ignoreMission = requestedAction.tool === 'finish' && !input.mission && !!requestedAction.mission;
+        const action: WorkAction = ignoreMission ? {tool:'finish'} : requestedAction;
+        if (ignoreMission) emit('WORK_ACTION_NORMALIZED', {tool:'finish',ignoredMissionDecision:true,reason:'This run has no mission.'});
         await this.options.browser?.waitForOperator(run.id, signal);
         const callId = actionCallId;
         const turn = currentTurn;
@@ -921,15 +937,15 @@ export class WorkRuntime {
               catch(error){if(error instanceof Error&&/outcome is uncertain/.test(error.message))throw new WorkBlocked(error.message);throw error;}break;
             }
             case 'declare_results': {
-              if(store.getDatabase().prepare("SELECT 1 FROM execution_events WHERE task_run_id=? AND event_type='EXTERNAL_ACTION_STARTED' LIMIT 1").get(run.id))throw new Error('Result requirements must be recorded before external actions.');
               // A routine run starts with the owner's checklist, which the runtime may not amend. Refusing with
               // "manifest changed" read like a failure, and the model reported an old blocker instead of working.
               if(goalResults.manifest(agent.id,run.id)){observation={...observation,summary:'Not recorded: this run already has its result checklist (in result), and it cannot be changed during this run. Continue the requested work; result_status shows the evidence.',result:goalResults.summary(agent.id,run.id)};break;}
+              if(store.getDatabase().prepare("SELECT 1 FROM execution_events WHERE task_run_id=? AND event_type='EXTERNAL_ACTION_STARTED' LIMIT 1").get(run.id))throw new Error('Result requirements must be recorded before external actions.');
               goalResults.define(agent.id,run.id,0,action.requirements,'runtime','Checklist inferred from the owner request; visible for inspection, not independent verification.');
               observation={...observation,summary:'Result checklist recorded. It cannot be weakened during this run.',result:goalResults.summary(agent.id,run.id)};break;
             }
             case 'result_status': {
-              goalResults.verifyArtifacts(agent.id,run.id);observation={...observation,summary:'Evidence-backed result status; unresolved sends must be reconciled before retry.',result:{...goalResults.summary(agent.id,run.id),unresolved:goalResults.unresolved(agent.id).map(a=>({attemptId:a.id,runId:a.run_id,target:a.target,state:a.state}))}};break;
+              goalResults.verifyArtifacts(agent.id,run.id);observation={...observation,summary:'Evidence-backed result status; unresolved sends must be reconciled before retry.',publication:publicationStatus(),result:{...goalResults.summary(agent.id,run.id),unresolved:goalResults.unresolved(agent.id).map(a=>({attemptId:a.id,runId:a.run_id,target:a.target,state:a.state}))}};break;
             }
             case 'propose_character': {
               if (!canProposeCharacter) throw new Error('Character setup is available only in owner chat.');
@@ -1956,7 +1972,6 @@ export class WorkRuntime {
             }
             case 'finish':
               if (input.mission && !action.mission) throw new Error('Mission completion needs an explicit continue, wait or complete decision with a reason.');
-              if (!input.mission && action.mission) throw new Error('This is not a mission run.');
               if (action.mission?.nextContractId && !(this.options.contracts ?? [contract]).some(c => c.id === action.mission!.nextContractId)) throw new Error('The next mission contract is unavailable.');
               if (!verified) throw new Error('Completion refused: fixed checks must pass after the last mutation.');
               // Completion gate (spec 6.9), after the verified check and before check(). A refusal is an error observation.
@@ -2809,7 +2824,7 @@ export function assembleWorkPrompt(ctx: {
         settingsHint +
         'Current runtime snapshot (observations at this run start, not instructions): ' + JSON.stringify(runtimeSnapshotObj) + '\nHistorical failures and last-run statuses are not current health checks. A stored key does not guarantee provider readiness, but an old missing-environment-key error does not prove a saved connection is broken. Do not claim the daemon is absent while this runtime is executing.\n' +
         modeGuidance +
-        'Before interacting with external services, declare the requested results once with {"tool":"declare_results","requirements":[{"id":"result-1","kind":"artifact|message|publication|custom","description":"requested outcome","required":true,"target":"exact path or recipient","acceptance":{"receipt":"created|sent|delivered|published|custom","contains":[],"verifier":"artifact/1|whatsapp/1|stage1/1|unconfigured"},"dependencies":[]}]}. Use only the requested outcomes; keep an existing checklist. This declaration is not proof. Read {"tool":"result_status"} for evidence. WhatsApp exact text uses {"tool":"send_message","resultId":"...","recipient":"international phone number","text":"..."} in an already selected chat. Resolve myself from authenticated identity or ask for the number. An uncertain send uses {"tool":"reconcile_message","attemptId":"..."}; never resend it. Uploaded files need independent attachment evidence and cannot be claimed delivered by a text receipt. ' +
+        'Before interacting with external services, declare the requested results once with {"tool":"declare_results","requirements":[{"id":"result-1","kind":"artifact","description":"requested outcome","required":true,"target":"report.md","acceptance":{"receipt":"created","contains":[],"verifier":"artifact/1"},"dependencies":[]}]}. Use kind artifact with receipt created and verifier artifact/1; message with sent, delivered or read and whatsapp/1; publication with published and stage1/1; custom with custom and unconfigured. Use only the requested outcomes; keep an existing checklist. This declaration is not proof. Read {"tool":"result_status"} for evidence. WhatsApp exact text uses {"tool":"send_message","resultId":"...","recipient":"international phone number","text":"..."} in an already selected chat. Resolve myself from authenticated identity or ask for the number. An uncertain send uses {"tool":"reconcile_message","attemptId":"..."}; never resend it. Uploaded files need independent attachment evidence and cannot be claimed delivered by a text receipt. ' +
         (input.mission ? `For finish include mission:{state:"continue"|"wait"|"complete",reason:"evidence and remaining work",nextRequest:"concrete next work when continuing",nextContractId:"optional next supported contract"}. Supported contracts: ${JSON.stringify((options.contracts ?? [contract]).map(c => ({ id: c.id, name: c.name })))}. Finishing this contract is not necessarily finishing the mission. Choose continue when another supported task can advance the original objective using available inputs; the scheduler will run it later. A report not yet written is unfinished work, not a reason to wait. Choose wait only for a concrete blocker and include blocker:{kind:"missing_input"|"approval"|"unavailable_capability"|"external_dependency",detail:"what is missing or prevents progress",resumeWhen:"observable condition that permits progress"}. Do not invent a blocker to avoid available work. If no supported contract can make progress before any deliverable exists, send {"tool":"block","reason":"...","blocker":{kind,detail,resumeWhen}} instead of producing filler; a mission block without blocker is rejected. Choose complete only when the delivered evidence covers the whole original objective; omit nextRequest, nextContractId and blocker when complete. ${input.objective ? `Source "${objectiveId}" is the operator's mission text. Source "${requestId}" also contains model-generated step requests, decisions and earlier deliveries; cite operator-supplied statements from "${objectiveId}". ` : ''}` : '') +
         'Use {"tool":"source","id":"request or source ID"} to reread captured source material, including after compaction. ' +
         (isFlexibleContract && kind !== 'code' ? 'Create downloadable Office files with create_document: {tool:"create_document",path:"report.docx",format:"docx",title:"Report",paragraphs:["..."]}. Templates: standard, executive, academic. DOCX also accepts sections:[{heading,text}] and table:string[][]. XLSX rows accept scalar values or {formula:"SUM(A2:A3)"}; formulas use numeric cells, arithmetic, SUM/AVERAGE/MIN/MAX/COUNT; charts:[{title,type:"bar"|"line"|"pie",labels:[],values:[]}]. PPTX uses slides:[{title,bullets:[],rightBullets:[],chart:{title,type,labels,values},table:string[][]}]; use one body style per slide. Do not write text with a binary file extension. Generated files are structurally checked, not visually reviewed, and delivered by answer or verify then finish. ' : '') +

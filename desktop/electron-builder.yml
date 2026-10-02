@@ -20,8 +20,8 @@ productName: OpenAgents
 copyright: Copyright © 2026 OpenAgents
 # npm requires a three-part semantic package version, while Windows supports a
 # fourth hotfix/build component. The packaged UI reads `releaseVersion` from
-# the root package and these values stamp the executable as exactly 0.6.1.
-buildVersion: 0.6.1
+# the root package and these values stamp the executable as exactly 0.6.2.
+buildVersion: 0.6.2
 buildNumber: "0"
 
 directories:

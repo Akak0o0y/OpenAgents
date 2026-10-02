@@ -1,8 +1,8 @@
 {
   "name": "omni-agent-kernel",
-  "version": "0.6.1",
-  "releaseVersion": "0.6.1",
-  "shortVersionWindows": "0.6.1",
+  "version": "0.6.2",
+  "releaseVersion": "0.6.2",
+  "shortVersionWindows": "0.6.2",
   "description": "Hardened 24/7 autonomous agent runtime and safety harness",
   "type": "module",
   "engines": {
@@ -21,7 +21,7 @@
     "test": "npm run build && node --test dist/tests/kernel.test.js dist/tests/docker-host.test.js && node --test dist/tests/security-eval.test.js && node --test dist/tests/trace-runner.test.js && npm run test:daemon && npm run test:browser && npm run test:completion && npm run test:expansion",
     "test:completion": "node --test --test-concurrency=1 dist/tests/attachments.test.js dist/tests/document-tools.test.js dist/tests/repository-publication.test.js dist/tests/work-questions.test.js",
     "browser:install": "playwright install chromium",
-    "test:browser": "node --test --test-concurrency=1 dist/tests/browser-recovery.test.js dist/tests/web-research.test.js dist/tests/browser-login.test.js dist/tests/browser-daily-use.test.js dist/tests/browser-tools.test.js dist/tests/browser-general-use.test.js dist/tests/computer-use.test.js dist/tests/browser-accounts.test.js dist/tests/browser-integration.test.js dist/tests/browser-extension-retirement.test.js dist/tests/publish-honesty.test.js",
+    "test:browser": "node --test --test-concurrency=1 dist/tests/result-recovery.test.js dist/tests/browser-recovery.test.js dist/tests/web-research.test.js dist/tests/browser-login.test.js dist/tests/browser-daily-use.test.js dist/tests/browser-tools.test.js dist/tests/browser-general-use.test.js dist/tests/computer-use.test.js dist/tests/browser-accounts.test.js dist/tests/browser-integration.test.js dist/tests/browser-extension-retirement.test.js dist/tests/publish-honesty.test.js",
     "test:bot-desktop": "npm run build && node scripts/verify-bot-desktop.mjs",
     "test:bot-desktop-unit": "npm run build && node --test dist/tests/bot-desktop.test.js",
     "test:flow-desktop": "npm run build && node scripts/verify-flow-desktop.mjs",

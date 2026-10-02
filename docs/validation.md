@@ -63,3 +63,20 @@ The snapshot was assembled in a separate clean clone on top of the repository's 
 The staged tree was checked for forbidden paths, personal identifiers, accidental generated files, and secret patterns. Gitleaks **8.30.1** initially flagged three SHA-256 source checksums in the character-baseline manifest. Each was reviewed as a checksum, and `.gitleaks.toml` allows only those three named checksum entries in that exact manifest. The resulting scan found no unreviewed secret matches. Public-history scanning is also configured in CI.
 
 No automated scan proves absolute absence of sensitive information. Review subsequent commits and attachments with the same care. Copyright/author credits belonging to dependencies were retained. Demo media uses synthetic conversations and original project artwork; the voice-only video has the same visual edit and narration with no music bed.
+
+## Runtime recovery fixes — 2 October 2026
+
+Version 0.6.2 includes the visible human-response form, preservation of typed replies, browser-target correction, and evidence-storage recovery. It also repairs omitted result kinds when the explicit receipt determines the kind, preserves an existing checklist on repeated declarations, and removes mission-only finish fields from routine tools. An accidental mission decision cannot create a mission or bypass verification.
+
+Publication requirements are now included before the first model call and in `result_status`, with their policy origin and confirmation state. A required post still needs independent confirmation in the current run. Drafts and uncertain sends cannot qualify as published; uncertain submissions must not be repeated. These checks do not establish that a real account is signed in or that an actual X post succeeded.
+
+Validation for these changes:
+
+- Backend/frontend production builds passed.
+- 74 focused runtime tests passed across result recovery, routine results, browser recovery, human assistance, publish policy and publication tracking. New runtime regressions cover JSON and native tool calls.
+- 84 desktop tests and 15 compatibility/activity tests passed.
+- The human-response UI change passed all 528 frontend tests, followed by 19 targeted component tests after its final status-text adjustment. The form was also exercised in an isolated browser fixture at desktop and narrow widths.
+- Browser tools/integration passed 46/47 on the first run; the cancellation timing case passed when rerun in isolation. Nine broader native-tool/chat failures reproduced against the unchanged baseline. These are not claims that the full suite or community CI is green.
+- Packaged runtime, document/attachment capabilities and source/package parity passed. Privacy scanning checked 4,407 unpacked files; configured credential and first-party owner-identifier checks found no matches. Packaged first-party files passed Gitleaks.
+
+See the [0.6.2 preview release](https://github.com/Akak0o0y/OpenAgents/releases/tag/v0.6.2-preview.1) for executable checksums and portable-launch results. Installer execution on a fresh Windows machine, real provider/account effects, and Linux/macOS packages remain unqualified.

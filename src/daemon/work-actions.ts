@@ -10,10 +10,23 @@ import { PreparePostSchema } from './character-prepare.js';
 import { ProposeCharacterSchema } from './character-setup.js';
 import {ResultRequirementsSchema} from './goal-results.js';
 
+// Providers sometimes omit kind even though receipt identifies it exactly. Normalize only
+// that redundant field at the tool boundary; stored/owner schemas remain strict. Never
+// invent destinations, receipt levels, verifiers, or required flags.
+const declarationRequirements = z.preprocess(input => {
+  if (!Array.isArray(input)) return input;
+  const kinds: Record<string, string> = {created:'artifact',sent:'message',delivered:'message',read:'message',published:'publication',custom:'custom'};
+  return input.map(item => {
+    if (!item || typeof item !== 'object' || item.kind !== undefined) return item;
+    const receipt = item.acceptance?.receipt;
+    return typeof receipt === 'string' && Object.hasOwn(kinds, receipt) ? {...item,kind:kinds[receipt]} : item;
+  });
+}, ResultRequirementsSchema);
+
 export const actionSchema = z.discriminatedUnion('tool', [
   z.object({tool:z.literal('reconcile_message'),attemptId:z.string().uuid()}).strict(),
   z.object({tool:z.literal('send_message'),resultId:z.string().min(1).max(100),recipient:z.string().min(1).max(100),text:z.string().min(1).max(8000),attachmentPath:z.string().min(1).max(200).optional()}).strict(),
-  z.object({tool:z.literal('declare_results'),requirements:ResultRequirementsSchema}).strict(),
+  z.object({tool:z.literal('declare_results'),requirements:declarationRequirements}).strict(),
   z.object({tool:z.literal('result_status')}).strict(),
   PreparePostSchema,
   ProposeCharacterSchema,

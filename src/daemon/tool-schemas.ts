@@ -10,7 +10,7 @@ export interface ToolDefinition {
 
 export const TOOL_DESCRIPTIONS: Record<string, string> = {
   send_message:'Send exact text in an already selected and observed WhatsApp Web chat, tied to a declared result and unambiguous international phone number. Checks outgoing send/delivery evidence; uncertain sends must not be repeated. Resolve myself through observed authenticated identity or ask for the missing number. Optional attachmentPath sends one verified text/HTML report from this run; declare acceptance.attachmentPaths, verify the file and open the document attachment menu first. Attachment verification downloads the exact outgoing document and compares its bytes; unavailable markup or receipt stays unverified.',
-  declare_results:'Before external actions, record a visible checklist covering every result the owner requested. Preserve exact destination/recipient; ask for missing identity instead of guessing. This can be called once, cannot amend existing requirements, and does not verify anything. Use artifact/1 for saved files, whatsapp/1 for message receipts, publish/1 for publications; other verifiers remain unconfigured.',
+  declare_results:'Before external actions, record the requested results unless a checklist already exists; use result_status for an existing checklist. Each requirement needs id, kind, description, required, target and acceptance. Valid kind/receipt/verifier combinations: artifact/created/artifact/1; message/sent (or delivered or read)/whatsapp/1; publication/published/stage1/1; custom/custom/unconfigured. Preserve exact destinations and receipt levels. This cannot amend existing requirements and does not verify completion.',
   reconcile_message:'Read-only receipt check for an unresolved WhatsApp attempt, in the already selected original chat. Never resends. Use result_status to find unresolved attempt IDs.',
   result_status:'Read the current result checklist and independently check retained artifacts. Unverified or uncertain delivery must never be reported as completed. Do not repeat uncertain submissions.',
   propose_character: 'Draft this bot’s character for owner approval. Start returns a guide; propose creates five unsent previews and an approval card. Never activates changes itself.',
@@ -208,7 +208,15 @@ export function availableTools(ctx: ToolAvailabilityContext): ToolDefinition[] {
   const result: ToolDefinition[] = [];
   for (const name of allowed) {
     const def = ALL_TOOL_DEFINITIONS.get(name);
-    if (def) result.push(def);
+    if (def && name === 'finish') {
+      // Do not advertise a mission decision to routine/conversation callers.
+      const parameters = structuredClone(def.parameters);
+      if (!ctx.isMission) {
+        delete (parameters.properties as Record<string, unknown>).mission;
+        parameters.required = [];
+      } else parameters.required = ['mission'];
+      result.push({...def,parameters,description:ctx.isMission ? def.description : 'Finish this run after verify passes. Supply no mission field; this is not a mission. Publication and result evidence checks still apply.'});
+    } else if (def) result.push(def);
   }
   return result;
 }
