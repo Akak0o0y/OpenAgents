@@ -59,7 +59,7 @@ npm --prefix desktop run icon
 
 The desktop install/icon steps are optional for browser-only runtime development. Three package directories have independent lockfiles. Run `npm ci` in each required directory; do not install dependencies globally to compensate for a missing local install.
 
-For managed-browser work:
+For standalone browser-adapter development and browser tests:
 
 ```bash
 npm run browser:install
@@ -85,7 +85,7 @@ Follow [provider setup](providers.md). With the built-in executor, the interface
 
 For the built desktop UI, run `npm run desktop`. It starts the Electron shell and supervised daemon. For browser-only use, run `npm run daemon` and open `http://127.0.0.1:4001`. The daemon creates a local SQLite database and a sibling authentication file. Use that token only with your own loopback connection page.
 
-If Docker is unavailable, the UI can still explain setup state, but Docker-dependent work cannot complete. Browser `isolation: "auto"` can choose the host browser when a sandbox is unavailable; set `"sandbox"` if your use case requires Docker-only browser execution. See [configuration](configuration.md).
+If Docker is unavailable, the UI can still explain setup state, but Docker-dependent work cannot complete. The current app always uses a bot-owned Docker desktop and regular Chrome for daemon browser work; there is no host-browser fallback. Bot Chrome needs an x64 Linux Docker engine. Installing Playwright Chromium supports standalone browser adapters and tests and does not replace that desktop setup. See [configuration](configuration.md).
 
 Start with one small task using synthetic or public information. Inspect its activity, questions, and result. Enable recurring work only after its provider and tools work. The runtime must stay running for schedules; the desktop tray behavior is configurable.
 

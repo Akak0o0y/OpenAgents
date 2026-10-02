@@ -33,11 +33,7 @@ Custom task contracts live under `contracts`; use [the example](examples/custom-
 
 ## Browser and repositories
 
-`browser.enabled` controls managed browser availability; `browser.maxConcurrency` is bounded from 1 to 4. `browser.isolation` accepts:
-
-- `auto`: prefer a Docker sandbox when available, otherwise use the computer browser path.
-- `sandbox`: require the Docker-backed browser path.
-- `computer`: choose the host-managed browser path.
+`browser.enabled` controls managed browser availability; `browser.maxConcurrency` is bounded from 1 to 4. The schema retains `browser.isolation` values `auto`, `sandbox`, and `computer` for adapter compatibility. **The current daemon always supplies a bot-owned Docker desktop to `BrowserTools`, regardless of that selector. It does not fall back to a host browser.** Bot Chrome requires an x64 Linux Docker engine; an unavailable engine is a visible setup failure. Lower-level browser adapters and tests still contain separate isolation modes, but they do not change the daemon's default execution boundary. See [`index.ts`](../src/daemon/index.ts) and [`bot-desktop.ts`](../src/daemon/bot-desktop.ts).
 
 `repositories.local` maps aliases to approved local paths. `repositories.github` contains repository names, a `tokenEnv` variable name, and an explicit `publish` flag (default false). Use only repositories you may access. A token variable name is configuration; the actual token stays out of Git. Publication rights should be scoped and reviewed.
 
