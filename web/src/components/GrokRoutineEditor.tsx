@@ -190,6 +190,8 @@ export function GrokRoutineEditor({
   const [postingBusy, setPostingBusy] = useState<'policy' | 'acknowledge' | null>(null);
   const [postingError, setPostingError] = useState('');
   const [confirmContinue, setConfirmContinue] = useState(false);
+  // Turning must-post on makes every run fail unless it posts, so it asks first; turning it off does not.
+  const [confirmMustPost, setConfirmMustPost] = useState(false);
   const selectedStatus = runs?.find(run => run.id === selectedRun)?.status;
   const selectedError = runs?.find(run => run.id === selectedRun)?.error_message;
   useEffect(() => {
@@ -235,6 +237,7 @@ export function GrokRoutineEditor({
     setPosting(POSTING_LOADING);
     setPostingError('');
     setConfirmContinue(false);
+    setConfirmMustPost(false);
   }, [routine?.id]);
 
   // Run history is read from the daemon, never accumulated in the browser.
@@ -604,10 +607,23 @@ export function GrokRoutineEditor({
               <Switch
                 checked={policy?.required ?? false}
                 disabled={posting.status !== 'ready' || postingBusy !== null}
-                onCheckedChange={(next) => void setMustPost(next)}
+                onCheckedChange={(next) => { if (next) setConfirmMustPost(true); else void setMustPost(false); }}
               />
               <span>This routine must post on x.com</span>
             </label>
+            {confirmMustPost && (
+              <div className="grok-inline-confirm" role="alertdialog" aria-label="Confirm required posting">
+                <p>Every run must confirm a post on x.com, or it fails. Turn this on only if the task above asks for a post.</p>
+                <div>
+                  <Button kind="primary" disabled={postingBusy !== null} onClick={() => { setConfirmMustPost(false); void setMustPost(true); }}>
+                    Require a post
+                  </Button>
+                  <Button kind="secondary" onClick={() => setConfirmMustPost(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
             {posting.status === 'ready' && <PostingReason policy={policy} onOpenRun={openRun} />}
             {posting.status === 'error' && <FormError>{posting.error}</FormError>}
             {postingError && <FormError>{postingError}</FormError>}
@@ -1132,7 +1148,7 @@ function PostingReason({ policy, onOpenRun }: { policy: PublishPolicyRow | null;
   }
   const date = new Date(policy.updatedAt).toLocaleDateString(UI_LOCALE, { dateStyle: 'medium' });
   return policy.required
-    ? <p className="grok-field-hint">On: set by you on {date}.</p>
+    ? <p className="grok-field-hint">On: set by you on {date}. Runs of this routine finish only with a confirmed post.</p>
     : <p className="grok-field-hint">Off: set by you on {date}. This routine may finish without posting.</p>;
 }
 

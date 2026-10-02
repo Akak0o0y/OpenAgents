@@ -126,7 +126,7 @@ export function GrokBotSettings({
 
   return (
     <div className="oh-settings-studio">
-      <nav className="oh-settings-nav" aria-label="Bot settings sections">{([{name:'Profile',icon:UserRound},{name:'Model & budget',icon:Cpu},{name:'Appearance',icon:Palette},{name:'Connections',icon:Plug}] as const).map(item=><button key={item.name} type="button" aria-current={section===item.name?'page':undefined} onClick={()=>setSection(item.name)}><item.icon size={16}/><span>{item.name}</span></button>)}</nav>
+      <nav className="oh-bot-settings-nav" aria-label="Bot settings sections">{([{name:'Profile',icon:UserRound},{name:'Model & budget',icon:Cpu},{name:'Appearance',icon:Palette},{name:'Connections',icon:Plug}] as const).map(item=><button key={item.name} type="button" aria-current={section===item.name?'page':undefined} onClick={()=>setSection(item.name)}><item.icon size={16}/><span>{item.name}</span></button>)}</nav>
       <div className="oh-settings-content">
       {section === 'Profile' && <>
       <div className="oh-panel-intro"><span className="oh-studio-eyebrow">Identity</span><h3>Make this bot yours</h3><p>A name, a purpose and a character of their own.</p></div>

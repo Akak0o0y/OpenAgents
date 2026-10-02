@@ -7,8 +7,12 @@ function verificationSummary(status: ReturnType<GoalResults['summary']>): string
   if (status.legacy) return 'No result checklist was recorded; goal completion is not independently verified.';
   if (status.satisfaction === 'not-required') return 'No required external result was declared for this run.';
   if (status.satisfaction === 'verified') return 'All required results have evidence.';
-  return `Unresolved: ${status.results.filter(r => r.required && r.state !== 'verified')
-    .map(r => `${r.description} (${r.state})`).join('; ')}`;
+  const open = status.results.filter(r => r.required && r.state !== 'verified');
+  // The must-post switch is the one requirement a run cannot change; say where the owner changes it.
+  const fromSwitch = open.some(r => r.id === 'legacy-publication')
+    ? ' This post is required by the routine’s “This routine must post on x.com” switch (routine editor, “Existing publication requirement”). If the routine should only draft, turn that switch off; if it should post, its instruction must allow posting.'
+    : '';
+  return `Unresolved: ${open.map(r => `${r.description} (${r.state})`).join('; ')}${fromSwitch}`;
 }
 
 export function saveWorkResult(store: AgentStore, runId: string, result: WorkResult): void {

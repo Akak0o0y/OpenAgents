@@ -914,7 +914,9 @@ button:disabled { opacity: 0.38; cursor: default; }
   inset: 0;
   z-index: 50;
   display: flex;
-  overflow: hidden;
+  /* clip, not hidden: a hidden frame can still be scrolled by scrollIntoView or focus(), which slid
+     the whole workspace up under the titlebar and showed the desktop backdrop below it. */
+  overflow: clip;
   background: var(--gk-bg-app);
   color: var(--gk-text);
   font-family: var(--gk-font-sans);
@@ -926,7 +928,7 @@ button:disabled { opacity: 0.38; cursor: default; }
   width: 100%;
   height: 100%;
   display: flex;
-  overflow: hidden;
+  overflow: clip;
 }
 
 /* A thin inset scrollbar. The default chrome bar is 15px and opaque, which
@@ -4608,7 +4610,7 @@ html.oh-desktop .grok-chat-pane {
   border-radius: 0;
   background: var(--gk-bg-transcript);
   box-shadow: none;
-  overflow: hidden;
+  overflow: clip;
 }
 /* The card's own header keeps the pane's fill rather than the window's, or a
    scrolled transcript would appear to slide out from under a hole. */

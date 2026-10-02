@@ -401,7 +401,7 @@ describe('posting', () => {
       [null, false, 'Off: this routine has never posted on x.com, so it may finish without posting.'],
       [policyRow(), true, 'On because run wveu4 clicked on x.com. Runs of this routine finish only with a confirmed post.'],
       [policyRow({ source: 'observed', evidenceRunId: 'run-1790160000000-k3p9q' }), true, 'On because run k3p9q sent a post to x.com. Runs of this routine finish only with a confirmed post.'],
-      [policyRow({ source: 'owner', required: true, evidenceRunId: null, updatedAt: SET_AT }), true, `On: set by you on ${localDate(SET_AT)}.`],
+      [policyRow({ source: 'owner', required: true, evidenceRunId: null, updatedAt: SET_AT }), true, `On: set by you on ${localDate(SET_AT)}. Runs of this routine finish only with a confirmed post.`],
       [policyRow({ source: 'owner', required: false, evidenceRunId: null, updatedAt: SET_AT }), false, `Off: set by you on ${localDate(SET_AT)}. This routine may finish without posting.`],
     ];
     for (const [row, on, text] of cases) {
@@ -442,6 +442,29 @@ describe('posting', () => {
     await waitFor(() => expect(action).toHaveBeenCalledWith('routine-publish-policy', { agentId: 'atlas', routineId: 'rtn-1', required: false }));
     await waitFor(() => expect(paragraph(`Off: set by you on ${localDate(SET_AT)}. This routine may finish without posting.`)).toBeInTheDocument());
     expect(screen.getByRole('switch', { name: 'This routine must post on x.com' })).not.toBeChecked();
+  });
+
+  // 2026-10-02: a draft-only routine's switch was turned on with one click and every run then failed. Turning
+  // posting on now asks first; turning it off stays one click.
+  it('asks before requiring a post, and sends nothing when cancelled', async () => {
+    const user = userEvent.setup();
+    const off = policyRow({ source: 'owner', required: false, evidenceRunId: null, updatedAt: SET_AT });
+    vi.spyOn(api, 'botSystem').mockResolvedValue(postingSystem({ publishPolicies: [off] }));
+    const action = vi.spyOn(api, 'systemAction').mockResolvedValue({ ...off, required: true, agentId: 'atlas', probe: 'x.com/create-tweet' });
+    render(<GrokRoutineEditor {...props({ routine: existing })} />);
+    const toggle = await screen.findByRole('switch', { name: 'This routine must post on x.com' });
+
+    await user.click(toggle);
+    const confirm = await screen.findByRole('alertdialog', { name: 'Confirm required posting' });
+    expect(within(confirm).getByText(/Every run must confirm a post on x\.com, or it fails/)).toBeInTheDocument();
+    await user.click(within(confirm).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('alertdialog', { name: 'Confirm required posting' })).not.toBeInTheDocument();
+    expect(action).not.toHaveBeenCalled();
+    expect(toggle).not.toBeChecked();
+
+    await user.click(toggle);
+    await user.click(within(await screen.findByRole('alertdialog', { name: 'Confirm required posting' })).getByRole('button', { name: 'Require a post' }));
+    await waitFor(() => expect(action).toHaveBeenCalledWith('routine-publish-policy', { agentId: 'atlas', routineId: 'rtn-1', required: true }));
   });
 
   it('shows the pending banner, opens the run, and acknowledges only after confirmation', async () => {

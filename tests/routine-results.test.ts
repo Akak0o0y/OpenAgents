@@ -7,6 +7,8 @@ import { ArtifactStore } from '../src/daemon/artifacts.js';
 import { ROUTINE_ASK_CONTRACT, ROUTINE_ASK_TASK } from '../src/daemon/work-contract.js';
 import { GoalResults } from '../src/daemon/goal-results.js';
 import { readWorkResult, saveWorkResult } from '../src/daemon/work-results.js';
+import { PublishPolicy } from '../src/daemon/publish-policy.js';
+import { xCreateTweet } from '../src/daemon/publish-probes.js';
 import type { ILLMClient, LLMRequest } from '../src/evals/llm-client.js';
 
 const MODEL = 'claude-haiku-4-5';
@@ -82,6 +84,30 @@ test('draft-only routine is told that no post is needed and inaccessible researc
     assert.match(prompt, /This routine has no required publication/);
     assert.match(prompt, /a truthful no-candidate result can complete the research/);
   } finally { ledger.close(); store.close(); }
+});
+
+// 2026-10-02: a draft-only routine failed every run with "Unresolved: Existing required publication (pending)".
+// The requirement came from the routine's must-post switch, but nothing in the result said so, and the owner
+// could not tell which setting to change.
+test('a run held open by the must-post switch names that switch and how to turn it off', () => {
+  const store = new AgentStore(':memory:');
+  try {
+    store.createAgent({ id: 'milo', name: 'Milo', model_id: MODEL, budget_cap_usd: 100, current_status: 'IDLE' });
+    const routine = store.createRoutine({ agentId: 'milo', name: 'reply drafts', cronExpression: '0 * * * *', promptTemplate: 'Research and draft only. Never publish.', nextRunAt: Date.now() });
+    new PublishPolicy(store, [xCreateTweet()]).set('milo', routine.id, true);
+    const goals = new GoalResults(store);
+    const expected = goals.routine('milo', routine.id);
+    assert.match(expected[0]!.description, /must post on x\.com/);
+    const run = store.createTaskRun({ agentId: 'milo', taskName: ROUTINE_ASK_TASK, routineId: routine.id });
+    goals.define('milo', run.id, 0, expected, 'runtime', 'Snapshot of owner-defined routine results before execution.');
+    saveWorkResult(store, run.id, { outcome: 'FAILED', report: 'Drafts saved; no post was made.', artifacts: [], turns: 1,
+      inputTokens: 10, outputTokens: 10, actualCostUsd: 0, shadowCostUsd: 0 });
+    const report = readWorkResult(store, run.id)!.report;
+    assert.match(report, /“This routine must post on x\.com” switch/);
+    assert.match(report, /turn that switch off/);
+  } finally {
+    store.close();
+  }
 });
 
 test('removing a mistaken publication requirement does not leave an unresolved result label', () => {

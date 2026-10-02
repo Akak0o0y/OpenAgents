@@ -30,7 +30,8 @@ export class GoalResults {
     const policy=hasPolicy?db.prepare('SELECT origin FROM routine_publish_policy WHERE routine_id=? AND agent_id=? AND required=1').get(routineId,agentId) as {origin:string}|undefined:undefined;
     // The authoritative legacy policy remains enforced by Stage 1. It cannot be removed by editing this projection.
     const generic=items.filter(r=>r.id!=='legacy-publication');
-    return policy?[...generic,{id:'legacy-publication',kind:'publication',description:'Existing required publication',required:true,target:policy.origin,acceptance:{receipt:'published',contains:[],verifier:'stage1/1'},dependencies:[]}]:generic;
+    // The description names the owner's switch (fixed "x.com" wording, as in the routine editor) so a failed run says which setting holds it open.
+    return policy?[...generic,{id:'legacy-publication',kind:'publication',description:'A confirmed post on x.com (this routine’s “must post on x.com” switch is on)',required:true,target:policy.origin,acceptance:{receipt:'published',contains:[],verifier:'stage1/1'},dependencies:[]}]:generic;
   }
   saveRoutine(agentId:string,routineId:string,input:unknown){const prior=this.routine(agentId,routineId),requirements=ResultRequirementsSchema.parse(input).filter(r=>r.id!=='legacy-publication');if(prior.some(r=>r.id==='legacy-publication')&&requirements.length>19)throw new Error('Reserve one result for the existing publication requirement.');this.store.setAgentData({agentId,category:'goal-results',key:`results:${routineId}`,data:requirements});return this.routine(agentId,routineId);}
   manifest(agentId:string,runId:string){
