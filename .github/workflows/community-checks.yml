@@ -23,14 +23,30 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             web/package-lock.json
+            desktop/package-lock.json
       - run: npm ci
       - run: npm --prefix web ci
+      # The desktop tests start the real Electron binary (desktop-frame) and a headless Chromium (theme).
+      - run: npm --prefix desktop ci
+      - name: Headless Chromium for the startup-page test
+        shell: bash
+        run: npx playwright install --only-shell $([ "$RUNNER_OS" = Linux ] && echo --with-deps) chromium
       - run: npm run build
       - run: npm run web:build
       - run: npm --prefix web test
       - name: Browser recovery and human responses
         run: node --test dist/tests/result-recovery.test.js dist/tests/browser-recovery.test.js dist/tests/human-assist.test.js
-      - run: npm run test:desktop
+      # Linux runners have no display, and Ubuntu's AppArmor blocks Electron's namespace sandbox unless its
+      # setuid helper is owned by root.
+      - name: Electron display and sandbox (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          command -v xvfb-run >/dev/null || { sudo apt-get update && sudo apt-get install -y xvfb; }
+          sudo chown root:root desktop/node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 desktop/node_modules/electron/dist/chrome-sandbox
+      - name: Desktop shell
+        shell: bash
+        run: if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm run test:desktop; else npm run test:desktop; fi
       - name: Configuration, auth, provider contracts and compatibility
         run: node --test --test-concurrency=1 dist/tests/config-file.test.js dist/tests/local-auth.test.js dist/tests/docker-host.test.js dist/tests/env-alias.test.js dist/tests/brand-compat.test.js dist/tests/brand-audit.test.js dist/tests/provider-connections.test.js
       - name: Public source hygiene

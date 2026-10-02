@@ -102,8 +102,8 @@ export async function verifyInstaller(file) {
 export const installDocker = file => command(file, ['install', '--user', '--quiet', '--backend=wsl-2'], 20 * 60_000);
 
 export class SandboxSetup {
-  constructor({ directory, probe, onStatus, platform = process.platform, env = process.env, dependencies = {} }) {
-    Object.assign(this, { directory, probe, onStatus, platform });
+  constructor({ directory, probe, onStatus, platform = process.platform, arch = process.arch, env = process.env, dependencies = {} }) {
+    Object.assign(this, { directory, probe, onStatus, platform, arch });
     this.explicitTransport = Boolean(env.OPENHOURS_DOCKER_CMD?.trim() || env.OPENHOURS_WSL_DISTRO?.trim());
     this.wslDistro = !env.OPENHOURS_DOCKER_CMD?.trim() ? env.OPENHOURS_WSL_DISTRO?.trim() : null;
     this.deps = { facts: windowsFacts, run: command, wsl: prepareWsl, download: downloadInstaller, verify: verifyInstaller, install: installDocker, find: findDockerDesktop, ensure: ensureDocker, ensureWsl: ensureWslDocker, launch: launchDockerDesktop, ...dependencies };
@@ -163,7 +163,7 @@ export class SandboxSetup {
       const facts = await this.deps.facts();
       if (this.saved.state === 'restart-required' && this.saved.boot === facts.boot) return this.report(this.saved.state, this.saved.message);
       if (!retry && this.saved.state && this.saved.state !== 'restart-required') return this.report(this.saved.state, this.saved.message);
-      const unsupported = supportedWindows(facts);
+      const unsupported = supportedWindows(facts, this.arch);
       if (unsupported) return this.block('setup-blocked', unsupported, facts.boot);
       if (this.deps.find()) {
         if (retry && this.saved.state === 'setup-paused') this.deps.launch(this.deps.find());

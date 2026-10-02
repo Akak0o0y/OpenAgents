@@ -26,9 +26,15 @@ function fixture(t, overrides = {}) {
     ensureWsl: async () => null,
     ...overrides,
   };
-  const options = { directory, probe: async () => missing, onStatus: status => statuses.push(status), platform: 'win32', dependencies };
+  const options = { directory, probe: async () => missing, onStatus: status => statuses.push(status), platform: 'win32', arch: 'x64', dependencies };
   return { options, setup: new SandboxSetup(options), calls, statuses, facts };
 }
+// CI's macOS runners are arm64: reading the host's architecture blocked every fixture as "not an x64 computer".
+test('the computer architecture comes from the setup options, not the machine running the setup code', async t => {
+  const f = fixture(t);
+  assert.equal((await new SandboxSetup({ ...f.options, arch: 'arm64' }).run()).state, 'setup-blocked');
+  assert.deepEqual(f.calls, []);
+});
 test('missing Docker is downloaded, verified, installed and started without a terminal', async t => {
   const f = fixture(t);
   assert.equal((await f.setup.run()).state, 'running');

@@ -28,7 +28,7 @@ OpenAgents is free of charge. Thank you to [FreeLLMAPI](https://github.com/tashf
 
 ## Your data and closing the app
 
-Both installer and portable builds normally use `%APPDATA%\OpenHours` for compatibility. “Portable” means no installation step, **not** a profile stored beside the executable. An existing OpenHours/OpenAgents installation can share this profile; back it up before trying a preview. Uninstalling intentionally preserves it.
+Both installer and portable builds normally use `%APPDATA%\OpenHours` for compatibility. “Portable” means no installation step, **not** a profile stored beside the executable. An existing OpenAgents installation, including one from before the rename (formerly OpenHours), can share this profile; back it up before trying a preview. Uninstalling intentionally preserves it.
 
 This version removes chat messages and cached chat requests after 24 hours, including overdue chat history when the runtime starts. It waits for an active chat request to finish. Routine runs, artifacts, activity evidence, and budgets follow separate retention rules. Existing profile backups are not rewritten.
 
