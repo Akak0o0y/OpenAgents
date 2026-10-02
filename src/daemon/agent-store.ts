@@ -947,6 +947,34 @@ export class AgentStore {
     }));
   }
 
+  /** Expire chat content without touching the task/run audit trail. */
+  pruneChatHistory(cutoffMs: number, protectedThreadIds: readonly string[] = [], nowMs: number = Date.now()):
+    { messagesDeleted: number; requestsDeleted: number; threadsReset: number } {
+    if (!Number.isSafeInteger(cutoffMs) || cutoffMs < 0 || !Number.isSafeInteger(nowMs) || nowMs < cutoffMs) {
+      throw new Error('Invalid chat retention time.');
+    }
+    const protectedIds = [...new Set(protectedThreadIds)];
+    const exclusion = protectedIds.length ? ` AND thread_id NOT IN (${protectedIds.map(() => '?').join(',')})` : '';
+    const selection = `SELECT id FROM chat_messages WHERE created_at <= ?${exclusion}`;
+    const params = [cutoffMs, ...protectedIds];
+    return this.transaction(() => {
+      const affected = this.db.prepare(`SELECT DISTINCT thread_id FROM chat_messages WHERE created_at <= ?${exclusion}`)
+        .all(...params) as Array<{ thread_id: string }>;
+      if (affected.length === 0) return { messagesDeleted: 0, requestsDeleted: 0, threadsReset: 0 };
+      // chat_requests also stores the full user prompt and cached reply. Remove it
+      // before the corresponding message, while its user_message_id still exists.
+      const requestsDeleted = Number(this.db.prepare(`DELETE FROM chat_requests WHERE user_message_id IN (${selection})`)
+        .run(...params).changes);
+      const messagesDeleted = Number(this.db.prepare(`DELETE FROM chat_messages WHERE created_at <= ?${exclusion}`)
+        .run(...params).changes);
+      const reset = this.db.prepare(`UPDATE chat_threads SET title = 'New conversation', updated_at = ?
+        WHERE id = ? AND NOT EXISTS (SELECT 1 FROM chat_messages WHERE thread_id = ?)`);
+      let threadsReset = 0;
+      for (const { thread_id } of affected) threadsReset += Number(reset.run(nowMs, thread_id, thread_id).changes);
+      return { messagesDeleted, requestsDeleted, threadsReset };
+    });
+  }
+
   private toThread(row: any): ChatThreadRecord {
     return {
       id: row.id,

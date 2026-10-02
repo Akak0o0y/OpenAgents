@@ -27,9 +27,10 @@ function harness(steps:Array<Action|Action[]>, native=false, humanResponse?:stri
   }};
   const browser={status:()=>({enabled:true}),waitForOperator:async()=>{},endRun:async()=>{},markOperatorActed:()=>{operatorActed++;},
     call:async(_agent:string,_run:string,action:Action)=>{browserCalls.push(action);if(action.action==='navigate')current=Number(String(action.url).split('/').pop());
+      if (String(action.url).startsWith('https://x.com/search')) return {url:String(action.url),title:'Search / X',snapshot:'Home Explore Notifications Loading…',tabs:[]};
       return {url:`https://example.test/${current}`,title:`Changing title ${browserCalls.length}`,snapshot:action.action==='fill'?'Changed form':`Fixture evidence ${current}`,tabs:[]};}
   } as unknown as BrowserTools;
-  const read=async(url:string)=>{webCalls++;await new Promise<void>(r=>setImmediate(r));return {url,title:'Fixture',text:`Fixture evidence ${url.split('/').pop()}`,capturedAt:new Date().toISOString(),truncated:false,links:[]};};
+  const read=async(url:string)=>{webCalls++;await new Promise<void>(r=>setImmediate(r));return {url,title:'Fixture',text:url.startsWith('https://x.com/search')?'Home Explore Notifications Loading…':`Fixture evidence ${url.split('/').pop()}`,capturedAt:new Date().toISOString(),truncated:false,links:[]};};
   const web={enabled:true,capabilities:()=>({internet:'fixture'}),read,search:read,githubIssues:read} as unknown as WebResearch;
   const forbidden=async()=>{throw Error('This fixture must not call Docker');};
   const sandbox={createWorkspaceVolume:forbidden,stageWorkspaceFiles:forbidden,readWorkspaceFile:forbidden,executeTask:forbidden,destroyWorkspaceVolume:forbidden};
@@ -56,6 +57,22 @@ for(const native of [false,true]){
     try{const r=await h.run();assert.equal(r.work?.outcome,'COMPLETED',r.reply.content + JSON.stringify(h.observations().slice(-3)));assert.equal(h.webCalls(),1);assert.equal(h.sources().length,12);
       const obs=h.observations().find(o=>o.tool==='web_search');assert.equal(obs.code,'CAPTURE_BUDGET_EXHAUSTED');assert.equal(obs.status,'warning');assert.equal(obs.source,null);assert.match(obs.summary,/Fixture evidence 12/);assert.ok(obs.retainedSources.some((s:any)=>s.id==='source-1'));
     }finally{h.close();}
+  });
+  test(`${mode}: an X search loading page does not spend a source slot or become a false citation`,async()=>{
+    const h=harness([{tool:'browser',action:'navigate',url:'https://x.com/search?q=ai'},
+      {tool:'web_read',url:'https://x.com/search?q=ai'},
+      {tool:'web_search',query:'https://example.test/0'},answer],native);
+    try {
+      const r=await h.run();
+      assert.equal(r.work?.outcome,'COMPLETED',r.reply.content + JSON.stringify(h.observations().slice(-3)));
+      assert.equal(h.sources().length,2);
+      const [browserResult,webResult,usable] = h.observations().filter(o=>['browser','web_read','web_search'].includes(o.tool));
+      assert.equal(browserResult.code,'SOURCE_UNAVAILABLE');
+      assert.equal(webResult.code,'SOURCE_UNAVAILABLE');
+      assert.equal(browserResult.source,null);
+      assert.equal(webResult.source,null);
+      assert.equal(usable.source.id,'source-1');
+    } finally {h.close();}
   });
   test(`${mode}: missing targets get an actionable correction before any browser call`,async()=>{
     const h=harness([{tool:'browser',action:'fill',value:'draft'},navigate(0),{tool:'browser',action:'fill',target:{ref:'e4'},value:'draft'},answer],native);

@@ -1,12 +1,12 @@
 # Try OpenAgents on Windows
 
-Download the **0.6.2 Windows x64 preview** from [GitHub Releases](https://github.com/Akak0o0y/OpenAgents/releases/tag/v0.6.2-preview.1). You do not need to build the source or install Node/npm to open the packaged app.
+Download the **0.6.3 Windows x64 preview** from [GitHub Releases](https://github.com/Akak0o0y/OpenAgents/releases/tag/v0.6.3-preview.1). You do not need to build the source or install Node/npm to open the packaged app.
 
 | Download | Use it for |
 | --- | --- |
-| [Portable app](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.2-preview.1/OpenAgents-0.6.2-portable.exe) | A quick trial: download and double-click. It extracts the runtime before opening. |
-| [Windows installer](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.2-preview.1/OpenAgents-0.6.2-setup.exe) | A regular per-user installation, shortcuts, and an uninstaller. |
-| [SHA-256 checksums](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.2-preview.1/SHA256SUMS.txt) | Check that your download matches the published file. |
+| [Portable app](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.3-preview.1/OpenAgents-0.6.3-portable.exe) | A quick trial: download and double-click. It extracts the runtime before opening. |
+| [Windows installer](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.3-preview.1/OpenAgents-0.6.3-setup.exe) | A regular per-user installation, shortcuts, and an uninstaller. |
+| [SHA-256 checksums](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.3-preview.1/SHA256SUMS.txt) | Check that your download matches the published file. |
 
 These are **unsigned preview builds**, with known runtime bugs. Windows may display an unknown-publisher or SmartScreen warning. Download only from this project's release page and verify the checksum if needed. The build is for Windows x64; no macOS, Linux, or native Windows ARM installer is included in this release.
 
@@ -30,12 +30,14 @@ OpenAgents is free of charge. Thank you to [FreeLLMAPI](https://github.com/tashf
 
 Both installer and portable builds normally use `%APPDATA%\OpenHours` for compatibility. “Portable” means no installation step, **not** a profile stored beside the executable. An existing OpenHours/OpenAgents installation can share this profile; back it up before trying a preview. Uninstalling intentionally preserves it.
 
+This version removes chat messages and cached chat requests after 24 hours, including overdue chat history when the runtime starts. It waits for an active chat request to finish. Routine runs, artifacts, activity evidence, and budgets follow separate retention rules. Existing profile backups are not rewritten.
+
 Closing the window can leave the app running in the system tray so routines continue. Choose **Quit** from its tray menu to stop it. There is no configured automatic update feed in this preview; download a later release manually.
 
 To check a downloaded file in PowerShell:
 
 ```powershell
-Get-FileHash .\OpenAgents-0.6.2-portable.exe -Algorithm SHA256
+Get-FileHash .\OpenAgents-0.6.3-portable.exe -Algorithm SHA256
 ```
 
 Compare the result with `SHA256SUMS.txt` on the same release page.

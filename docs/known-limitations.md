@@ -9,6 +9,7 @@ This is an early community source release. The code is available for inspection 
 - **Provider cost and availability:** No free model quota is guaranteed. The default/sample model can be paid. Gateway/model capabilities, served-model identity, rate limits, and catalogs can change.
 - **External actions:** A complete autonomous issue-to-fix-to-reviewed-publication workflow depends on credentials, repository permissions, tests, and operator decisions. A model's claim is not publication proof.
 - **Browser boundaries:** Auto isolation can fall back to a host-managed browser; choose sandbox-only mode when required. Account grants and changed-page/account checks still matter.
+- **X research:** Public X search can return only a loading shell or no usable post text/engagement. Draft routines should report that limit, skip unverifiable candidates, and leave every draft unsent. This preview does not guarantee access to live X posts or metrics.
 - **Routines and persistence:** The runtime must remain running for scheduled work. Recovery, sleep/wake behavior, long sessions, and large data histories need more real-world coverage.
 - **Memory and character growth:** Model-generated summaries/interpretations can be incomplete or wrong. Keep evidence-backed claims, proposals, approvals, and user-provided identity separate.
 - **Calibration:** Runtime constants marked provisional are estimates. A passing unit test does not establish statistically calibrated limits.

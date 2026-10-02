@@ -128,6 +128,7 @@ export class GoalResults {
     const verified=new Set(attempts.filter(a=>a.state==='verified'&&!expired.has(a.result_id)).map(a=>a.result_id));
     let changed=true;while(changed){changed=false;for(const r of manifest.requirements)if(verified.has(r.id)&&r.dependencies.some(d=>!verified.has(d))){verified.delete(r.id);changed=true;}}
     const results=manifest.requirements.map(r=>{const attempt=attempts.find(a=>a.result_id===r.id);return {...r,state:expired.has(r.id)?'evidence-expired':verified.has(r.id)?'verified':attempt?.state==='verified'?'blocked':attempt?.state==='dispatched'?'running':attempt?.state??'pending',evidence:attempt?.receipt_json?JSON.parse(attempt.receipt_json):null};});
-    return {satisfaction:results.some(r=>r.required)&&results.filter(r=>r.required).every(r=>r.state==='verified')?'verified':'unverified',legacy:false,revision:manifest.revision,results};
+    const required=results.filter(r=>r.required);
+    return {satisfaction:required.length===0?'not-required':required.every(r=>r.state==='verified')?'verified':'unverified',legacy:false,revision:manifest.revision,results};
   }
 }

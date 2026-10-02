@@ -3,13 +3,21 @@ import type { WorkResult } from './work-runtime.js';
 import { readVerifiedWork } from './work-checkpoints.js';
 import {GoalResults} from './goal-results.js';
 
+function verificationSummary(status: ReturnType<GoalResults['summary']>): string {
+  if (status.legacy) return 'No result checklist was recorded; goal completion is not independently verified.';
+  if (status.satisfaction === 'not-required') return 'No required external result was declared for this run.';
+  if (status.satisfaction === 'verified') return 'All required results have evidence.';
+  return `Unresolved: ${status.results.filter(r => r.required && r.state !== 'verified')
+    .map(r => `${r.description} (${r.state})`).join('; ')}`;
+}
+
 export function saveWorkResult(store: AgentStore, runId: string, result: WorkResult): void {
   const run = store.getTaskRun(runId);
   if (!run) throw new Error('Cannot save a result without its task run.');
   const goals=new GoalResults(store);goals.verifyArtifacts(run.agent_id,runId);
   const satisfaction=goals.summary(run.agent_id,runId);
   const marker='\n\n**Result verification:** ';
-  const summary=satisfaction.legacy?'No result checklist was recorded; goal completion is not independently verified.':satisfaction.satisfaction==='verified'?'All required results have evidence.':`Unresolved: ${satisfaction.results.filter(r=>r.required&&r.state!=='verified').map(r=>`${r.description} (${r.state})`).join('; ')||'No required outcomes were declared.'}`;
+  const summary=verificationSummary(satisfaction);
   if(result.goalVerification&&result.report.endsWith(marker+result.goalVerification.summary))result.report=result.report.slice(0,-(marker+result.goalVerification.summary).length);
   result.goalVerification={satisfaction:satisfaction.satisfaction,revision:satisfaction.revision,summary};
   result.report+=marker+summary;
@@ -27,7 +35,7 @@ export function readWorkResult(store: AgentStore, runId: string): WorkResult | n
     if(current.satisfaction!==result.goalVerification.satisfaction||current.revision!==result.goalVerification.revision){
       const marker='\n\n**Result verification:** ',old=marker+result.goalVerification.summary;
       if(result.report.endsWith(old))result.report=result.report.slice(0,-old.length);
-      const summary='Stored evidence no longer verifies every required result. Check the current result checklist.';
+      const summary=verificationSummary(current);
       result={...result,goalVerification:{satisfaction:current.satisfaction,revision:current.revision,summary},report:result.report+marker+summary};
     }
   }

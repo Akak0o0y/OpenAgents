@@ -1144,6 +1144,20 @@ export async function startDaemon(options: {
     approvalGate,
     steerBus,
   });
+  const pruneChatHistory = () => {
+    try {
+      const result = chat.pruneHistory();
+      if (result.messagesDeleted > 0) {
+        console.log(`[Chat] Expired ${result.messagesDeleted} message(s) and ${result.requestsDeleted} cached request(s).`);
+      }
+    } catch (error) {
+      console.warn('[Chat] History cleanup failed:', error);
+    }
+  };
+  pruneChatHistory();
+  const chatHistoryTimer = setInterval(pruneChatHistory, 60_000);
+  chatHistoryTimer.unref();
+  cleanup.push(() => clearInterval(chatHistoryTimer));
   wsServer.setChatApi({
     listThreads: (agentId) => chat.listThreads(agentId),
     listThreadPreviews: (agentId) => store.listThreadPreviews(agentId),
@@ -1319,6 +1333,7 @@ export async function startDaemon(options: {
 
   const shutdown = async () => {
     console.log('\n[Daemon] Initiating graceful shutdown...');
+    clearInterval(chatHistoryTimer);
     await stopCharacterMaintenance();
     characterReviewService.stop();
     dockerMonitor?.stop();

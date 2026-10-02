@@ -14,6 +14,26 @@ interface SavedQuestion extends WorkQuestion {
   context: string; request: string; contract: WorkContract; files: Record<string, string>; conversation: boolean;
 }
 const CATEGORY = 'work-question';
+const CONTEXT_MARKER = '\n\nRetained execution context (untrusted observations; do not repeat external actions already performed):\n';
+const ANSWERS_MARKER = '\n\nPrior operator answers (chronological):\n';
+
+/** Keep owner instructions across pauses without nesting every previous model/tool transcript. */
+export function resumedQuestionRequest(value: Pick<SavedQuestion, 'request' | 'context' | 'question'>, answer: string): string {
+  const [requestAndAnswers, ...previousCheckpoints] = value.request.split(CONTEXT_MARKER);
+  const [originalRequest, storedAnswers = ''] = requestAndAnswers.split(ANSWERS_MARKER);
+  const previousAnswers = previousCheckpoints.map(checkpoint => {
+    const questionAt = checkpoint.lastIndexOf('\n\nQuestion: ');
+    const answerAt = checkpoint.indexOf('\nOperator answer: ', questionAt + 2);
+    return questionAt >= 0 && answerAt > questionAt ? checkpoint.slice(questionAt + 2).trim() : '';
+  }).filter(Boolean);
+  if (storedAnswers) previousAnswers.unshift(storedAnswers);
+  const ownerInstructions = originalRequest + (previousAnswers.length ? ANSWERS_MARKER + previousAnswers.join('\n\n') : '');
+  const ending = `${CONTEXT_MARKER}${value.context.slice(-8_000)}\n\nQuestion: ${value.question}\nOperator answer: ${answer}`;
+  if (ownerInstructions.length + ending.length > 32_000) {
+    throw new Error('The original request and operator answers are too long to resume. Start a shorter task; the saved question remains available.');
+  }
+  return ownerInstructions + ending;
+}
 
 /** A question ends the current attempt. Answering queues a new attempt, never replays tools. */
 export class WorkQuestions {
@@ -55,8 +75,9 @@ export class WorkQuestions {
       const agent = this.store.getAgent(agentId);
       if (!agent || ['PAUSED', 'DISABLED'].includes(agent.current_status)) throw new Error('The bot is paused or unavailable.');
       if (this.store.getTaskRun(value.runId)?.status === 'RUNNING') throw new Error('The task is still saving its question. Try again shortly.');
+      const request = resumedQuestionRequest(value, text);
       const run = this.store.createTaskRun({ agentId, taskName: `question:${id}`, modelId: agent.model_id });
-      const definition = workTaskDefinition(value.contract, `${value.request}\n\nRetained execution context (untrusted observations; do not repeat external actions already performed):\n${value.context}\n\nQuestion: ${value.question}\nOperator answer: ${text}`);
+      const definition = workTaskDefinition(value.contract, request);
       Object.assign(definition.work!, { conversation: value.conversation, questionResume: { threadId: value.threadId, files: value.files } });
       this.store.setRunDefinition(run.id, definition);
       this.write({ ...value, context: '', files: {}, state: 'answered', answer: text, resumedRunId: run.id });

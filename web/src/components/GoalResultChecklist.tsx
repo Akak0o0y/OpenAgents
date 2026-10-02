@@ -8,5 +8,6 @@ export function GoalResultChecklist({agentId,runId}:{agentId:string;runId:string
   },[agentId,runId]);
   if(!data)return <p>Result verification unavailable.</p>;
   if(data.legacy)return <p>No result checklist recorded — completion is not independently verified.</p>;
+  if(data.satisfaction==='not-required')return <p>No required external result was declared for this run.</p>;
   return <section aria-label="Result checklist"><strong>{data.satisfaction==='verified'?'Required results verified':'Results still need evidence'}</strong><ul>{data.results.map(r=><li key={r.id}>{r.description} · {r.state}{r.evidence&&<details><summary>Evidence · {r.evidence.receipt}</summary><p>{r.evidence.verifier} · {new Date(r.evidence.observedAt).toLocaleString()}</p><p>Reference: {r.evidence.reference}</p>{r.evidence.receipt!=='created'&&<p>{r.evidence.account?`Account: ${r.evidence.account}`:'Account identity unavailable'}</p>}</details>}</li>)}</ul></section>;
 }

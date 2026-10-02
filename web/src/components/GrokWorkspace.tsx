@@ -195,6 +195,18 @@ export function GrokWorkspace({ onToggleGalaxyView, initialStudioOpen = false }:
   }, [loadPreviews, loadApprovals, agents.length]);
 
   useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState !== 'hidden') void loadPreviews();
+    };
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [loadPreviews]);
+
+  useEffect(() => {
     setRoutinesLoading(true);
     void refreshRoutines()
       .then(() => setRoutinesError(null))

@@ -18,7 +18,7 @@ Special thanks to **[FreeLLMAPI](https://github.com/tashfeenahmed/freellmapi)** 
 
 | Area | What is in the source |
 | --- | --- |
-| AI teammates | Named bots with roles, model selection, appearance controls, character settings, and conversation history. |
+| AI teammates | Named bots with roles, model selection, appearance controls, character settings, and chat history retained for up to 24 hours. |
 | Direct work | Chat and bounded tasks, with activity, questions, approvals, results, and downloadable artifacts. |
 | Repeat work | Scheduled routines, run history, attention states, and goal/result tracking. Routines need the runtime running. |
 | Browser and computer work | Managed browser sessions and a Docker-backed bot desktop. External actions have additional scope and approval checks. |
@@ -27,11 +27,13 @@ Special thanks to **[FreeLLMAPI](https://github.com/tashfeenahmed/freellmapi)** 
 | Model choice | Direct provider paths and configurable OpenAI-compatible connections, including FreeLLMAPI. Model capabilities and availability vary. |
 | Visibility | Activity history, budget accounting, and Cortex views of runtime events. A successful tool response is not automatically proof of an external action. |
 
-This is an **early community source release, version 0.6.2**. Expect bugs and unfinished areas. Windows desktop has received the most development attention. Linux/macOS runtime work is supported in the code, but their packaged apps and protected credential storage are not at Windows parity. See [known limitations](docs/known-limitations.md) and [validation](docs/validation.md).
+Chat messages and cached chat requests expire after 24 hours while the runtime is open, and overdue content is cleared when it starts. An in-progress chat finishes before its history is cleared. Task runs, routine results, artifacts, activity evidence, and budget records have separate retention; clearing chat does not erase them. Existing profile backups are separate recovery copies and are not rewritten.
+
+This is an **early community source release, version 0.6.3**. Expect bugs and unfinished areas. Windows desktop has received the most development attention. Linux/macOS runtime work is supported in the code, but their packaged apps and protected credential storage are not at Windows parity. See [known limitations](docs/known-limitations.md) and [validation](docs/validation.md).
 
 ## Try the Windows app — no build required
 
-**[Download the portable app](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.2-preview.1/OpenAgents-0.6.2-portable.exe)** for a quick trial, or use the **[Windows installer](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.2-preview.1/OpenAgents-0.6.2-setup.exe)**. Both are unsigned **Windows x64 preview builds** of 0.6.2 with known bugs; [release notes and checksums](https://github.com/Akak0o0y/OpenAgents/releases/tag/v0.6.2-preview.1) describe validation and limits.
+**[Download the portable app](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.3-preview.1/OpenAgents-0.6.3-portable.exe)** for a quick trial, or use the **[Windows installer](https://github.com/Akak0o0y/OpenAgents/releases/download/v0.6.3-preview.1/OpenAgents-0.6.3-setup.exe)**. Both are unsigned **Windows x64 preview builds** of 0.6.3 with known bugs; [release notes and checksums](https://github.com/Akak0o0y/OpenAgents/releases/tag/v0.6.3-preview.1) describe validation and limits.
 
 The packaged app includes its runtime. Real AI work still needs your own model connection, and isolated desktop/coding work needs Docker Linux containers. Follow the **[Windows trial guide](docs/try-windows.md)** for first run, WSL, providers, and profile storage. Developers can also build from source below.
 

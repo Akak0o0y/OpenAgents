@@ -173,6 +173,8 @@ const checksums = installers.map((file) => ({
   hash: sha256(path.join(publishDir, file)),
   mb: (fs.statSync(path.join(publishDir, file)).size / 1024 / 1024).toFixed(0),
 }));
+const checksumLines = checksums.map((c) => `${c.hash}  ${c.file}`).join('\n') + '\n';
+fs.writeFileSync(path.join(publishDir, 'SHA256SUMS.txt'), checksumLines);
 
 // ------------------------------------------------------------------ README ---
 
@@ -193,7 +195,7 @@ Both contain exactly the same application.
 **SHA-256**
 
 \`\`\`
-${checksums.map((c) => `${c.hash}  ${c.file}`).join('\n')}
+${checksumLines.trimEnd()}
 \`\`\`
 
 ## First run
@@ -209,6 +211,8 @@ have.
 The app opens on a startup screen while its local server starts, then moves to
 your workspace by itself. The app runs on your machine and sends data to
 the model providers, websites and connectors you choose to use. OCR runs locally.
+Connect your own model provider in Settings before expecting AI replies. The app
+does not include an API key, funded model account, or unlimited free inference.
 
 ## Docker
 
@@ -248,8 +252,10 @@ port is taken by another program, it picks another and remembers it.
 | \`logs\\\\\` | Rotated logs. Keys, tokens and your user folder are removed before anything is written. |
 | \`backups\\\\\` | A copy of the database taken before a different version opens it. The newest three are kept. |
 
-**Uninstalling does not delete this folder.** Your conversations survive an
-uninstall and a reinstall. Delete it yourself if you want a clean slate.
+**Uninstalling does not delete this folder.** Chat messages and cached requests
+expire after 24 hours while the app runs and when it starts. Task/routine runs,
+artifacts and existing profile backups are separate; backups can contain older
+conversations and are not rewritten by chat cleanup.
 
 ## If something goes wrong
 
@@ -264,10 +270,12 @@ and Docker status, recent log lines - with keys and tokens removed. Help →
   have never been built or tested.
 - **No auto-update.** \`latest.yml\` is included for a future update feed, but
   the app does not check for one.
+- **Early preview.** The broad runtime/browser suites are not fully green. See
+  the public repository's validation and known-limitations guides.
 
 ---
 
-Built from the project at \`Desktop\\OpenHours\` with \`npm run publish\`.
+Built from the public OpenAgents source, version ${version}.
 Generated ${new Date().toISOString().slice(0, 10)}.
 `;
 
@@ -278,4 +286,4 @@ fs.writeFileSync(path.join(publishDir, 'README.md'), readme);
 console.log(`\nPublished OpenAgents ${version} to ${publishDir}\n`);
 for (const c of checksums) console.log(`  ${c.file.padEnd(38)} ${c.mb.padStart(4)} MB`);
 for (const f of copied.filter((f) => !f.endsWith('.exe'))) console.log(`  ${f}`);
-console.log(`  README.md (checksums regenerated)\n`);
+console.log(`  README.md and SHA256SUMS.txt (checksums regenerated)\n`);

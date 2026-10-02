@@ -4,7 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { AgentStore } from '../src/daemon/agent-store.js';
-import { WorkQuestions } from '../src/daemon/work-questions.js';
+import { WorkQuestions, resumedQuestionRequest } from '../src/daemon/work-questions.js';
 import { CONVERSATION_CONTRACT } from '../src/daemon/work-contract.js';
 import { publicAgentDataApi } from '../src/daemon/internal-data.js';
 import { WorkRuntime } from '../src/daemon/work-runtime.js';
@@ -58,4 +58,39 @@ test('cancelled questions never dispatch work', () => {
   questions.cancel('bot',question.id);
   assert.throws(() => questions.answer('bot',question.id,'Yes'), /cancelled/);
   assert.equal(store.listTaskRuns('bot').length,1); store.close();
+});
+
+test('repeated human answers preserve owner decisions without replaying old transcripts into the next run', () => {
+  const marker = '\n\nRetained execution context (untrusted observations; do not repeat external actions already performed):\n';
+  let request = 'Original owner request';
+  for (let i = 0; i < 15; i++) {
+    request += `${marker}${'old observation '.repeat(500)}\n\nQuestion: Choice ${i}?\nOperator answer: Choice ${i} accepted`;
+  }
+  const first = resumedQuestionRequest({request,context:'recent observation '.repeat(5000),question:'Final choice?'},'Use the final choice');
+  assert.ok(first.length < 20_000, `Resume request grew to ${first.length} characters`);
+  assert.equal((first.match(/Retained execution context/g) ?? []).length, 1);
+  for (let i = 0; i < 15; i++) assert.match(first, new RegExp(`Operator answer: Choice ${i} accepted`));
+  assert.doesNotMatch(first, /old observation/);
+  const second = resumedQuestionRequest({request:first,context:'fresh result',question:'Proceed?'},'Yes');
+  assert.equal((second.match(/Operator answer: Choice 0 accepted/g) ?? []).length, 1);
+  assert.match(second, /Operator answer: Use the final choice/);
+  assert.match(second, /Operator answer: Yes/);
+  assert.ok(second.length < 20_000);
+});
+
+test('a large saved checkpoint queues a bounded continuation before the model starts', () => {
+  const store = new AgentStore(':memory:');
+  store.createAgent({id:'bot',name:'Bot',model_id:'claude-haiku-4-5',budget_cap_usd:1,current_status:'IDLE'});
+  const run = store.createTaskRun({agentId:'bot',taskName:'chat'});
+  store.startTaskRun(run.id,'claude-haiku-4-5');
+  const questions = new WorkQuestions(store);
+  const question = questions.ask({agentId:'bot',runId:run.id,question:'Continue?',options:[],contract:CONVERSATION_CONTRACT,
+    request:'Original request',context:'old transcript '.repeat(4000),files:{},conversation:true});
+  store.finishTaskRun(run.id,'COMPLETED');
+  const {runId} = questions.answer('bot',question.id,'Yes');
+  const definition = store.getRunDefinition(runId) as TaskDefinition;
+  assert.ok(definition.work!.request.length < 10_000);
+  assert.match(definition.work!.request,/Original request/);
+  assert.match(definition.work!.request,/Operator answer: Yes/);
+  store.close();
 });

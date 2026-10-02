@@ -470,6 +470,28 @@ export function GrokChat({
     };
   }, [chatActivity, threadId]);
 
+  // Chat content expires in the daemon after 24 hours. Refresh an open
+  // transcript even when no new reply event arrives.
+  useEffect(() => {
+    if (!threadId) return;
+    let cancelled = false;
+    const refresh = () => {
+      if (document.visibilityState === 'hidden' || pendingRequests.current.has(threadId)) return;
+      void api.chatMessages(threadId)
+        .then((result) => {
+          if (!cancelled && !pendingRequests.current.has(threadId)) setMessages(result.messages);
+        })
+        .catch(() => undefined);
+    };
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [threadId]);
+
   // Example requests from the details panel fill this bot's composer (see
   // lib/compose.ts). Nothing is sent: the person edits it and presses Send.
   useEffect(() => {

@@ -63,6 +63,7 @@ const DEFAULT_SYSTEM_PROMPT =
   'if you do not know something about their system, say so rather than guessing.';
 
 export class ChatService {
+  static readonly HISTORY_RETENTION_MS = 24 * 60 * 60 * 1000;
   private readonly store: AgentStore;
   private readonly ledger: CostLedger;
   private readonly llm: ILLMClient;
@@ -117,6 +118,11 @@ export class ChatService {
       throw new ChatError(`No such thread: ${threadId}`, 'NOT_FOUND');
     }
     return this.store.getMessages(threadId);
+  }
+
+  /** A running or queued send keeps its context until it commits or fails. */
+  pruneHistory(nowMs: number = Date.now()): { messagesDeleted: number; requestsDeleted: number; threadsReset: number } {
+    return this.store.pruneChatHistory(nowMs - ChatService.HISTORY_RETENTION_MS, [...this.threadTails.keys()], nowMs);
   }
 
   /**

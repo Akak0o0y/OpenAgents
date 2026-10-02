@@ -1,8 +1,8 @@
 {
   "name": "omni-agent-kernel",
-  "version": "0.6.2",
-  "releaseVersion": "0.6.2",
-  "shortVersionWindows": "0.6.2",
+  "version": "0.6.3",
+  "releaseVersion": "0.6.3",
+  "shortVersionWindows": "0.6.3",
   "description": "Hardened 24/7 autonomous agent runtime and safety harness",
   "type": "module",
   "engines": {
